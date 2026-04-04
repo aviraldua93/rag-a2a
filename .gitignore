@@ -49,3 +49,8 @@ evaluation/*.egg-info/
 
 # Runtime artifacts
 artifacts/
+
+# a2a-crews launch artifacts
+.a2a-crews/
+.a2a-crews-launch-*.ps1
+.a2a-crews-prompt-*.txt

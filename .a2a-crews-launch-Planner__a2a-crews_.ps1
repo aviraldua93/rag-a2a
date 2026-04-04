@@ -1,2 +1,0 @@
-Set-Location 'C:\Users\aviraldua\OneDrive - Microsoft\Desktop\Git-Personal\rag-a2a'
-$p = Get-Content 'C:\Users\aviraldua\OneDrive - Microsoft\Desktop\Git-Personal\rag-a2a\.a2a-crews\.planner-prompt.txt' -Raw; copilot -p $p --yolo
