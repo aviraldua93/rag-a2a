@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import type { SearchResult } from '../store/types.ts';
 import type { GenerationResult, StreamChunk } from './types.ts';
 import { buildRAGPrompt, buildSystemPrompt } from './prompt.ts';
+import { verifyCitations } from './guardrails.ts';
 
 /** LLM-powered RAG answer generator using OpenAI */
 export class RAGGenerator {
@@ -33,6 +34,8 @@ export class RAGGenerator {
     const answer = choice?.message?.content ?? '';
     const durationMs = Math.round(performance.now() - start);
 
+    const guardrailResult = verifyCitations(answer, contexts);
+
     return {
       answer,
       sources: contexts.map(ctx => ({
@@ -43,6 +46,11 @@ export class RAGGenerator {
       model: this.model,
       tokensUsed: response.usage?.total_tokens,
       durationMs,
+      guardrail: {
+        isGrounded: guardrailResult.isGrounded,
+        groundingScore: guardrailResult.groundingScore,
+        hallucinations: guardrailResult.hallucinations,
+      },
     };
   }
 
@@ -108,6 +116,7 @@ export class MockGenerator {
       : `I cannot find the answer to "${query}" in the provided documents.`;
 
     const durationMs = Math.round(performance.now() - start);
+    const guardrailResult = verifyCitations(answer, contexts);
 
     return {
       answer,
@@ -119,6 +128,11 @@ export class MockGenerator {
       model: 'mock',
       tokensUsed: answer.length,
       durationMs,
+      guardrail: {
+        isGrounded: guardrailResult.isGrounded,
+        groundingScore: guardrailResult.groundingScore,
+        hallucinations: guardrailResult.hallucinations,
+      },
     };
   }
 

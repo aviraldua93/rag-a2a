@@ -16,14 +16,40 @@ export interface A2ATask {
 /** Executes A2A tasks against the retrieval pipeline and optional generator */
 export class TaskExecutor {
   private tasks: Map<string, A2ATask> = new Map();
+  private readonly TTL_MS = 3600_000; // 1 hour
+  private readonly MAX_TASKS = 10_000;
 
   constructor(
     private pipeline: RetrievalPipeline,
     private generator: RAGGenerator | MockGenerator | null,
   ) {}
 
+  /** Evict expired or overflow tasks */
+  private evict(): void {
+    const now = Date.now();
+    for (const [id, task] of this.tasks) {
+      if (task.status === 'completed' || task.status === 'failed') {
+        const age = now - new Date(task.updatedAt).getTime();
+        if (age > this.TTL_MS) {
+          this.tasks.delete(id);
+        }
+      }
+    }
+    // Cap at MAX_TASKS
+    if (this.tasks.size > this.MAX_TASKS) {
+      const excess = this.tasks.size - this.MAX_TASKS;
+      let removed = 0;
+      for (const id of this.tasks.keys()) {
+        if (removed >= excess) break;
+        this.tasks.delete(id);
+        removed++;
+      }
+    }
+  }
+
   /** Execute a retrieval (and optionally generation) task */
   async execute(taskId: string, message: string): Promise<A2ATask> {
+    this.evict();
     const now = new Date().toISOString();
     const task: A2ATask = {
       id: taskId,

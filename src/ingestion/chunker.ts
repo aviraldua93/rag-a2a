@@ -60,7 +60,7 @@ export function chunkDocument(doc: RawDocument, options: ChunkerOptions): TextCh
       spans = slidingWindow(text, options.chunkSize, options.chunkOverlap);
       break;
     case 'semantic':
-      spans = semanticChunk(text, options.chunkSize);
+      spans = semanticChunk(text, options.chunkSize, options.chunkOverlap);
       break;
     case 'recursive':
       spans = recursiveChunk(text, options.chunkSize, options.chunkOverlap);
@@ -123,7 +123,7 @@ function slidingWindow(text: string, chunkSize: number, chunkOverlap: number): S
  * consecutive paragraphs as long as the merged text fits within
  * `chunkSize`.  This preserves semantic coherence.
  */
-function semanticChunk(text: string, chunkSize: number): Span[] {
+function semanticChunk(text: string, chunkSize: number, chunkOverlap: number = 0): Span[] {
   // Identify paragraph boundaries (double newline).
   const paragraphs = splitKeepingOffsets(text, /\n\n+/g);
 
@@ -153,7 +153,24 @@ function semanticChunk(text: string, chunkSize: number): Span[] {
 
   // Flush remaining text.
   spans.push({ start: mergedStart, end: mergedEnd });
-  return spans;
+
+  // Guard against oversized chunks: fall back to recursive splitting
+  const maxAllowed = chunkSize * 2;
+  const guarded = spans.flatMap(span => {
+    const spanLen = span.end - span.start;
+    if (spanLen > maxAllowed) {
+      const spanText = text.slice(span.start, span.end);
+      const subSpans: Span[] = [];
+      recursiveSplit(spanText, 0, chunkSize, chunkOverlap, 0, subSpans);
+      return subSpans.map(s => ({
+        start: span.start + s.start,
+        end: span.start + s.end,
+      }));
+    }
+    return [span];
+  });
+
+  return guarded;
 }
 
 /**

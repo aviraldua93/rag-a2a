@@ -15,7 +15,7 @@ async function search(query, mode = 'hybrid', topK = 5) {
   return res.json();
 }
 
-async function askStream(query, onChunk, onSources, onDone) {
+async function askStream(query, onText, onSource, onStatus, onDone, onError) {
   const res = await fetch(`${API}/api/ask`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
@@ -26,6 +26,7 @@ async function askStream(query, onChunk, onSources, onDone) {
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
+  let currentEvent = 'message';
 
   while (true) {
     const { done, value } = await reader.read();
@@ -36,25 +37,72 @@ async function askStream(query, onChunk, onSources, onDone) {
     buffer = lines.pop() || '';
 
     for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        const payload = line.slice(6).trim();
-        if (payload === '[DONE]') {
-          onDone?.();
-          return;
-        }
-        try {
-          const data = JSON.parse(payload);
-          if (data.type === 'chunk' && data.content) onChunk(data.content);
-          if (data.type === 'sources' && data.sources) onSources?.(data.sources);
-          if (data.type === 'error') console.error('Stream error:', data.message);
-        } catch {
-          // plain text chunk fallback
-          if (payload) onChunk(payload);
-        }
+      if (line.startsWith('event: ')) {
+        currentEvent = line.slice(7).trim();
+      } else if (line.startsWith('data: ')) {
+        const data = line.slice(6);
+        handleSSEEvent(currentEvent, data, onText, onSource, onStatus, onDone, onError);
+        currentEvent = 'message';
       }
     }
   }
-  onDone?.();
+}
+
+function handleSSEEvent(event, data, onText, onSource, onStatus, onDone, onError) {
+  switch (event) {
+    case 'message': {
+      // [DONE] is a control signal, not display text
+      if (data === '[DONE]') {
+        onDone();
+        return;
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(data);
+      } catch {
+        onText(data);
+        return;
+      }
+      // JSON-stringified string from server's sendText()
+      if (typeof parsed === 'string') {
+        onText(parsed);
+        return;
+      }
+      // Legacy protocol: objects with a type field
+      if (parsed && typeof parsed === 'object' && parsed.type) {
+        switch (parsed.type) {
+          case 'chunk':
+            onText(parsed.content);
+            return;
+          case 'sources':
+            if (Array.isArray(parsed.sources)) {
+              parsed.sources.forEach((s) => onSource(s));
+            }
+            return;
+          case 'done':
+            onDone();
+            return;
+          case 'error':
+            onError({ message: parsed.message || parsed.content || 'Unknown error' });
+            return;
+        }
+      }
+      onText(String(parsed));
+      break;
+    }
+    case 'source':
+      try { onSource(JSON.parse(data)); } catch {}
+      break;
+    case 'status':
+      try { onStatus(JSON.parse(data)); } catch {}
+      break;
+    case 'done':
+      onDone();
+      break;
+    case 'error':
+      try { onError(JSON.parse(data)); } catch { onError({ message: data }); }
+      break;
+  }
 }
 
 async function getHealth() {
@@ -213,12 +261,16 @@ function initChat() {
       let sources = [];
       await askStream(
         query,
-        (chunk) => appendToMessage(assistantIdx, chunk),
-        (src) => { sources = src; },
+        (text) => appendToMessage(assistantIdx, text),
+        (src) => { sources.push(src); },
+        (_status) => { /* status updates could be shown in UI */ },
         () => {
           finalizeMessage(assistantIdx, sources);
           state.isStreaming = false;
           renderChatBtn();
+        },
+        (err) => {
+          appendToMessage(assistantIdx, `\n\n_Error: ${err.message || 'Unknown error'}_`);
         }
       );
     } catch (err) {

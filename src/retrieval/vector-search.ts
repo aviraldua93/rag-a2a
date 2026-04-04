@@ -1,4 +1,4 @@
-import type { VectorStore, SearchResult } from '../store/types.ts';
+import type { VectorStore, SearchResult, SearchFilter } from '../store/types.ts';
 import type { EmbeddingProvider } from '../embeddings/provider.ts';
 
 /**
@@ -17,8 +17,8 @@ export class VectorSearcher {
    * Embed the query string and search the vector store for the top-K
    * most similar documents.
    */
-  async search(query: string, topK: number): Promise<SearchResult[]> {
+  async search(query: string, topK: number, filter?: SearchFilter): Promise<SearchResult[]> {
     const vector = await this.embedder.embed(query);
-    return this.store.search(vector, topK);
+    return this.store.search(vector, topK, filter);
   }
 }

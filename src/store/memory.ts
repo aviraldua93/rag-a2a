@@ -1,4 +1,4 @@
-import type { VectorStore, VectorDocument, SearchResult } from './types.ts';
+import type { VectorStore, VectorDocument, SearchResult, SearchFilter } from './types.ts';
 
 /**
  * Compute the cosine similarity between two vectors.
@@ -43,12 +43,13 @@ export class MemoryStore implements VectorStore {
   }
 
   /** Search by cosine similarity, returning the top-K most similar documents. */
-  async search(vector: number[], topK: number): Promise<SearchResult[]> {
+  async search(vector: number[], topK: number, filter?: SearchFilter): Promise<SearchResult[]> {
     if (this.documents.size === 0) return [];
 
     const scored: SearchResult[] = [];
 
     for (const doc of this.documents.values()) {
+      if (filter && !matchesFilter(doc.metadata, filter)) continue;
       const score = cosineSimilarity(vector, doc.vector);
       scored.push({
         id: doc.id,
@@ -73,4 +74,30 @@ export class MemoryStore implements VectorStore {
   async count(): Promise<number> {
     return this.documents.size;
   }
+
+  /** Retrieve all documents from the store. */
+  async getAll(): Promise<SearchResult[]> {
+    return Array.from(this.documents.values()).map(doc => ({
+      id: doc.id,
+      content: doc.content,
+      score: 1.0,
+      metadata: doc.metadata,
+    }));
+  }
+}
+
+/** Check if a document's metadata matches the given filter criteria. */
+function matchesFilter(
+  metadata: Record<string, unknown>,
+  filter: SearchFilter,
+): boolean {
+  for (const [key, value] of Object.entries(filter)) {
+    const actual = metadata[key];
+    if (Array.isArray(value)) {
+      if (!value.includes(actual as string)) return false;
+    } else if (actual !== value) {
+      return false;
+    }
+  }
+  return true;
 }

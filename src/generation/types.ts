@@ -5,6 +5,11 @@ export interface GenerationResult {
   model: string;
   tokensUsed?: number;
   durationMs: number;
+  guardrail?: {
+    isGrounded: boolean;
+    groundingScore: number;
+    hallucinations: string[];
+  };
 }
 
 /** A chunk emitted during streaming generation */

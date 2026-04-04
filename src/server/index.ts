@@ -94,6 +94,23 @@ if (hasApiKey) {
 // --- 6. A2A task executor ---
 const executor = new TaskExecutor(pipeline, generator);
 
+// --- BM25 index rebuild from stored documents ---
+try {
+  const docCount = await store.count();
+  if (docCount > 0) {
+    console.log(`📚 Rebuilding BM25 index from ${docCount} stored documents...`);
+    const allDocs = await store.getAll();
+    pipeline.indexDocuments(
+      allDocs.map(doc => ({ id: doc.id, content: doc.content, metadata: doc.metadata }))
+    );
+    console.log(`✅ BM25 index rebuilt with ${allDocs.length} documents`);
+  } else {
+    console.log('⚠️  BM25 index empty — run /api/ingest to populate');
+  }
+} catch (err) {
+  console.log('⚠️  Could not rebuild BM25 index:', err instanceof Error ? err.message : String(err));
+}
+
 // --- 7. Start the server ---
 const baseUrl = `http://${config.server.host}:${config.server.port}`;
 

@@ -12,13 +12,35 @@ export function buildSystemPrompt(): string {
 6. Preserve technical accuracy — do not paraphrase in ways that change meaning.`;
 }
 
+/** Estimate token count (rough: 1 token ≈ 4 chars for English text) */
+export function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
 /** Build the RAG prompt with retrieved context chunks and the user query */
-export function buildRAGPrompt(query: string, contexts: SearchResult[]): string {
+export function buildRAGPrompt(
+  query: string,
+  contexts: SearchResult[],
+  maxContextTokens: number = 4000,
+): string {
   if (contexts.length === 0) {
     return `No relevant documents were found for the following question. Please indicate that you cannot answer.\n\nQuestion: ${query}`;
   }
 
-  const contextBlock = contexts
+  // Sort by score descending (should already be, but be safe)
+  const sorted = [...contexts].sort((a, b) => b.score - a.score);
+
+  const includedContexts: SearchResult[] = [];
+  let tokenBudget = maxContextTokens;
+
+  for (const ctx of sorted) {
+    const tokens = estimateTokens(ctx.content);
+    if (tokenBudget - tokens < 0 && includedContexts.length > 0) break;
+    includedContexts.push(ctx);
+    tokenBudget -= tokens;
+  }
+
+  const contextBlock = includedContexts
     .map((ctx, i) => {
       const source = ctx.metadata?.source ?? ctx.id;
       return `[Source ${i + 1}] (id: ${ctx.id}, source: ${source}, score: ${ctx.score.toFixed(3)})\n${ctx.content}`;

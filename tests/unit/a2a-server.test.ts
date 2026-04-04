@@ -74,7 +74,7 @@ describe('A2A Server — handleA2ARequest', () => {
     const req = new Request(`${BASE_URL}/.well-known/agent-card.json`, { method: 'GET' });
     const res = await handleA2ARequest(req, executor, BASE_URL);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.name).toBe('RAG-A2A Agent');
     expect(body.url).toBe(`${BASE_URL}/a2a`);
     expect(body.skills).toBeInstanceOf(Array);
@@ -86,7 +86,7 @@ describe('A2A Server — handleA2ARequest', () => {
     });
     const res = await handleA2ARequest(req, executor, BASE_URL);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.jsonrpc).toBe('2.0');
     expect(body.result.task).toBeDefined();
     expect(body.result.task.status).toBe('completed');
@@ -96,14 +96,14 @@ describe('A2A Server — handleA2ARequest', () => {
   test('message/send with query param works', async () => {
     const req = rpcRequest('message/send', { query: 'Explain ML' });
     const res = await handleA2ARequest(req, executor, BASE_URL);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.result.task.status).toBe('completed');
   });
 
   test('message/send without text returns error', async () => {
     const req = rpcRequest('message/send', { message: { parts: [] } });
     const res = await handleA2ARequest(req, executor, BASE_URL);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBeDefined();
     expect(body.error.code).toBe(-32600);
   });
@@ -114,13 +114,13 @@ describe('A2A Server — handleA2ARequest', () => {
       message: { parts: [{ type: 'text', text: 'Test' }] },
     });
     const sendRes = await handleA2ARequest(sendReq, executor, BASE_URL);
-    const sendBody = await sendRes.json();
+    const sendBody = await sendRes.json() as any;
     const taskId = sendBody.result.task.id;
 
     // Then get it
     const getReq = rpcRequest('tasks/get', { taskId }, 2);
     const getRes = await handleA2ARequest(getReq, executor, BASE_URL);
-    const getBody = await getRes.json();
+    const getBody = await getRes.json() as any;
     expect(getBody.result.task.id).toBe(taskId);
     expect(getBody.result.task.status).toBe('completed');
   });
@@ -128,7 +128,7 @@ describe('A2A Server — handleA2ARequest', () => {
   test('tasks/get without taskId returns error', async () => {
     const req = rpcRequest('tasks/get', {});
     const res = await handleA2ARequest(req, executor, BASE_URL);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBeDefined();
     expect(body.error.code).toBe(-32600);
     expect(body.error.message).toContain('taskId');
@@ -148,7 +148,7 @@ describe('A2A Server — handleA2ARequest', () => {
 
     const listReq = rpcRequest('tasks/list', {}, 3);
     const listRes = await handleA2ARequest(listReq, executor, BASE_URL);
-    const body = await listRes.json();
+    const body = await listRes.json() as any;
     expect(body.result.tasks.length).toBe(2);
   });
 
@@ -158,7 +158,7 @@ describe('A2A Server — handleA2ARequest', () => {
       message: { parts: [{ type: 'text', text: 'Cancel me' }] },
     });
     const sendRes = await handleA2ARequest(sendReq, executor, BASE_URL);
-    const sendBody = await sendRes.json();
+    const sendBody = await sendRes.json() as any;
     const taskId = sendBody.result.task.id;
 
     // Set task to working to allow cancel
@@ -167,7 +167,7 @@ describe('A2A Server — handleA2ARequest', () => {
 
     const cancelReq = rpcRequest('tasks/cancel', { taskId }, 4);
     const cancelRes = await handleA2ARequest(cancelReq, executor, BASE_URL);
-    const cancelBody = await cancelRes.json();
+    const cancelBody = await cancelRes.json() as any;
     expect(cancelBody.result.task.status).toBe('failed');
     expect(cancelBody.result.task.result).toBe('Task was cancelled');
   });
@@ -175,7 +175,7 @@ describe('A2A Server — handleA2ARequest', () => {
   test('unknown method returns method-not-found error', async () => {
     const req = rpcRequest('nonexistent/method', {});
     const res = await handleA2ARequest(req, executor, BASE_URL);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBeDefined();
     expect(body.error.code).toBe(-32601);
     expect(body.error.message).toContain('Method not found');
@@ -189,7 +189,7 @@ describe('A2A Server — handleA2ARequest', () => {
     });
     const res = await handleA2ARequest(req, executor, BASE_URL);
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error.code).toBe(-32700);
   });
 
@@ -200,7 +200,7 @@ describe('A2A Server — handleA2ARequest', () => {
       body: JSON.stringify({ method: 'tasks/list' }),
     });
     const res = await handleA2ARequest(req, executor, BASE_URL);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBeDefined();
     expect(body.error.code).toBe(-32600);
   });

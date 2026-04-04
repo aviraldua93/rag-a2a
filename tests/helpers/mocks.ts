@@ -10,6 +10,7 @@ import type {
   VectorStore,
   VectorDocument,
   SearchResult,
+  SearchFilter,
 } from '../../src/store/types.ts';
 import type { EmbeddingProvider } from '../../src/embeddings/provider.ts';
 import type { BM25Document } from '../../src/retrieval/bm25.ts';
@@ -57,12 +58,13 @@ export class MockVectorStore implements VectorStore {
     }
   }
 
-  async search(vector: number[], topK: number): Promise<SearchResult[]> {
+  async search(vector: number[], topK: number, filter?: SearchFilter): Promise<SearchResult[]> {
     this.calls.search.push({ vector, topK });
     if (this.documents.size === 0) return [];
 
     const scored: SearchResult[] = [];
     for (const doc of this.documents.values()) {
+      if (filter && !matchesFilter(doc.metadata, filter)) continue;
       const score = cosineSimilarity(vector, doc.vector);
       scored.push({
         id: doc.id,
@@ -86,6 +88,15 @@ export class MockVectorStore implements VectorStore {
   async count(): Promise<number> {
     this.calls.count++;
     return this.documents.size;
+  }
+
+  async getAll(): Promise<SearchResult[]> {
+    return Array.from(this.documents.values()).map(doc => ({
+      id: doc.id,
+      content: doc.content,
+      score: 1.0,
+      metadata: doc.metadata,
+    }));
   }
 
   /** Reset all stored data and call tracking */
@@ -466,6 +477,21 @@ export const TEST_SEARCH_RESULTS: SearchResult[] = [
 // ---------------------------------------------------------------------------
 // Helpers (internal)
 // ---------------------------------------------------------------------------
+
+function matchesFilter(
+  metadata: Record<string, unknown>,
+  filter: SearchFilter,
+): boolean {
+  for (const [key, value] of Object.entries(filter)) {
+    const actual = metadata[key];
+    if (Array.isArray(value)) {
+      if (!value.includes(actual as string)) return false;
+    } else if (actual !== value) {
+      return false;
+    }
+  }
+  return true;
+}
 
 function cosineSimilarity(a: number[], b: number[]): number {
   let dot = 0;

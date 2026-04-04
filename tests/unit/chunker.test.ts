@@ -144,12 +144,16 @@ describe('Chunker – semantic', () => {
     assertOffsetsMatch(chunks, LONG_DOCUMENT_CONTENT);
   });
 
-  test('no paragraph breaks: entire text becomes one chunk', () => {
+  test('no paragraph breaks: oversized single chunk is recursively split', () => {
     const doc = makeDoc(SINGLE_PARAGRAPH_CONTENT);
     const chunks = chunkDocument(doc, opts(100));
-    // No \n\n in the text, so semantic falls back to a single chunk
-    expect(chunks.length).toBe(1);
-    expect(chunks[0].content).toBe(SINGLE_PARAGRAPH_CONTENT);
+    // No \n\n in the text; the single span exceeds 2*chunkSize so the
+    // oversized-chunk guard falls back to recursive splitting.
+    expect(chunks.length).toBeGreaterThan(1);
+    // All chunk content concatenated (allowing overlap) should cover the original
+    for (const chunk of chunks) {
+      expect(SINGLE_PARAGRAPH_CONTENT).toContain(chunk.content);
+    }
   });
 
   test('large individual paragraphs: each becomes its own chunk', () => {

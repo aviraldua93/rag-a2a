@@ -1,6 +1,6 @@
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { v5 as uuidv5 } from 'uuid';
-import type { VectorStore, VectorDocument, SearchResult } from './types.ts';
+import type { VectorStore, VectorDocument, SearchResult, SearchFilter } from './types.ts';
 
 /** UUID v5 namespace used for deterministic ID hashing. */
 const UUID_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
@@ -82,13 +82,24 @@ export class QdrantStore implements VectorStore {
   }
 
   /** Search by vector similarity, returning the top-K results sorted by score. */
-  async search(vector: number[], topK: number): Promise<SearchResult[]> {
+  async search(vector: number[], topK: number, filter?: SearchFilter): Promise<SearchResult[]> {
     try {
-      const results = await this.client.search(this.collectionName, {
+      const searchParams: Record<string, unknown> = {
         vector,
         limit: topK,
         with_payload: true,
-      });
+      };
+
+      if (filter && Object.keys(filter).length > 0) {
+        searchParams.filter = {
+          must: Object.entries(filter).map(([key, value]) => ({
+            key: `metadata.${key}`,
+            match: { value },
+          })),
+        };
+      }
+
+      const results = await this.client.search(this.collectionName, searchParams as any);
 
       return results.map((r) => {
         const payload = r.payload ?? {};
@@ -130,6 +141,41 @@ export class QdrantStore implements VectorStore {
     } catch (error) {
       throw new Error(
         `Failed to count documents in Qdrant: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /** Retrieve all documents from the store by scrolling through all points. */
+  async getAll(): Promise<SearchResult[]> {
+    try {
+      const results: SearchResult[] = [];
+      let offset: string | number | undefined = undefined;
+
+      while (true) {
+        const response = await this.client.scroll(this.collectionName, {
+          limit: 100,
+          offset,
+          with_payload: true,
+        });
+
+        for (const point of response.points) {
+          const payload = point.payload ?? {};
+          results.push({
+            id: (payload.original_id as string) ?? String(point.id),
+            content: (payload.content as string) ?? '',
+            score: 1.0,
+            metadata: (payload.metadata as Record<string, unknown>) ?? {},
+          });
+        }
+
+        if (!response.next_page_offset) break;
+        offset = response.next_page_offset as string | number;
+      }
+
+      return results;
+    } catch (error) {
+      throw new Error(
+        `Failed to retrieve all documents from Qdrant: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

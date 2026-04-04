@@ -4,6 +4,7 @@ import type { Reranker } from './reranker.ts';
 import { VectorSearcher } from './vector-search.ts';
 import { BM25Index, type BM25Document } from './bm25.ts';
 import { reciprocalRankFusion } from './hybrid.ts';
+import { LRUCache } from './cache.ts';
 
 /** Configuration for the retrieval pipeline. */
 export interface RetrievalPipelineOptions {
@@ -24,6 +25,7 @@ export interface RetrievalResult {
     hybridResultCount: number;
     rerankResultCount: number;
     durationMs: number;
+    cacheHit?: boolean;
   };
 }
 
@@ -38,6 +40,7 @@ export class RetrievalPipeline {
   private vectorSearcher: VectorSearcher;
   private bm25Index: BM25Index;
   private reranker: Reranker;
+  private cache: LRUCache<string, RetrievalResult>;
 
   constructor(
     store: VectorStore,
@@ -48,11 +51,17 @@ export class RetrievalPipeline {
     this.vectorSearcher = new VectorSearcher(store, embedder);
     this.bm25Index = new BM25Index();
     this.reranker = reranker;
+    this.cache = new LRUCache<string, RetrievalResult>(100, 300_000);
   }
 
   /** Index documents for BM25 keyword search. */
   indexDocuments(documents: BM25Document[]): void {
     this.bm25Index.index(documents);
+  }
+
+  /** Invalidate the query cache (e.g. after ingestion). */
+  invalidateCache(): void {
+    this.cache.invalidate();
   }
 
   /**
@@ -64,14 +73,66 @@ export class RetrievalPipeline {
    *
    * @returns The final results with pipeline metadata.
    */
-  async retrieve(query: string): Promise<RetrievalResult> {
+  async retrieve(query: string, overrides?: { topK?: number; mode?: string }): Promise<RetrievalResult> {
+    const topK = overrides?.topK ?? this.options.topK;
+    const mode = overrides?.mode ?? 'hybrid';
+    const rerankTopK = this.options.rerankTopK;
+
+    const cacheKey = `${query}|${topK}|${mode}|${this.options.hybridWeight}|${rerankTopK}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached) {
+      return { ...cached, metadata: { ...cached.metadata, cacheHit: true } };
+    }
+
     const start = performance.now();
 
-    // Run vector and keyword search in parallel
-    const [vectorResults, keywordResults] = await Promise.all([
-      this.vectorSearcher.search(query, this.options.topK),
-      Promise.resolve(this.bm25Index.search(query, this.options.topK)),
-    ]);
+    // Run vector and keyword search based on mode
+    let vectorResults: SearchResult[] = [];
+    let keywordResults: SearchResult[] = [];
+
+    if (mode === 'vector' || mode === 'hybrid') {
+      vectorResults = await this.vectorSearcher.search(query, topK);
+    }
+    if (mode === 'keyword' || mode === 'hybrid') {
+      keywordResults = this.bm25Index.search(query, topK);
+    }
+
+    const durationMs = performance.now() - start;
+
+    // Single-mode: skip fusion, just rerank and return
+    if (mode === 'vector') {
+      const rerankedResults = await this.reranker.rerank(query, vectorResults, rerankTopK);
+      const result: RetrievalResult = {
+        results: rerankedResults,
+        metadata: {
+          vectorResultCount: vectorResults.length,
+          keywordResultCount: 0,
+          hybridResultCount: vectorResults.length,
+          rerankResultCount: rerankedResults.length,
+          durationMs: performance.now() - start,
+          cacheHit: false,
+        },
+      };
+      this.cache.set(cacheKey, result);
+      return result;
+    }
+
+    if (mode === 'keyword') {
+      const rerankedResults = await this.reranker.rerank(query, keywordResults, rerankTopK);
+      const result: RetrievalResult = {
+        results: rerankedResults,
+        metadata: {
+          vectorResultCount: 0,
+          keywordResultCount: keywordResults.length,
+          hybridResultCount: keywordResults.length,
+          rerankResultCount: rerankedResults.length,
+          durationMs: performance.now() - start,
+          cacheHit: false,
+        },
+      };
+      this.cache.set(cacheKey, result);
+      return result;
+    }
 
     // Hybrid fusion
     const hybridResults = reciprocalRankFusion(vectorResults, keywordResults, {
@@ -83,20 +144,21 @@ export class RetrievalPipeline {
     const rerankedResults = await this.reranker.rerank(
       query,
       hybridResults,
-      this.options.rerankTopK,
+      rerankTopK,
     );
 
-    const durationMs = performance.now() - start;
-
-    return {
+    const result: RetrievalResult = {
       results: rerankedResults,
       metadata: {
         vectorResultCount: vectorResults.length,
         keywordResultCount: keywordResults.length,
         hybridResultCount: hybridResults.length,
         rerankResultCount: rerankedResults.length,
-        durationMs,
+        durationMs: performance.now() - start,
+        cacheHit: false,
       },
     };
+    this.cache.set(cacheKey, result);
+    return result;
   }
 }

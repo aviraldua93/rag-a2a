@@ -6,6 +6,7 @@ import type { VectorStore } from '../store/types.ts';
 import type { EmbeddingProvider } from '../embeddings/provider.ts';
 import { handleA2ARequest } from '../a2a/server.ts';
 import { SSEStream } from './sse.ts';
+import { resolve, normalize } from 'node:path';
 
 /** Dependencies injected into the request handler */
 export interface RouteContext {
@@ -96,7 +97,7 @@ async function handleSearch(req: Request, ctx: RouteContext): Promise<Response> 
   const mode = typeof body.mode === 'string' ? body.mode : undefined;
 
   try {
-    const retrieval = await ctx.pipeline.retrieve(query);
+    const retrieval = await ctx.pipeline.retrieve(query, { topK, mode: mode as string });
     return Response.json({
       query,
       results: retrieval.results,
@@ -180,6 +181,18 @@ async function handleIngest(req: Request, ctx: RouteContext): Promise<Response> 
       { error: 'directory is required and must be a string' },
       { status: 400 },
     );
+  }
+
+  // Path traversal protection
+  const ALLOWED_BASE = resolve(process.cwd());
+  const resolved = resolve(directory);
+  const normalized = normalize(resolved);
+
+  if (!normalized.startsWith(ALLOWED_BASE)) {
+    return withCors(Response.json(
+      { error: 'Directory must be within the project root' },
+      { status: 403 },
+    ));
   }
 
   try {
