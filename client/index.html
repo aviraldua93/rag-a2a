@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>rag-a2a — Knowledge Agent</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- ── Header ────────────────────────────────────────── -->
+    <header class="header">
+      <div class="header-brand">
+        <span class="header-logo">rag-a2a</span>
+        <span class="header-subtitle">Knowledge Agent for Multi-Agent Systems</span>
+      </div>
+      <div id="health-badge" class="health-badge" data-status="unknown">
+        <span class="health-dot"></span>
+        <span id="health-label">Checking…</span>
+      </div>
+    </header>
+
+    <!-- ── Main ──────────────────────────────────────────── -->
+    <main class="main">
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="search">Search</button>
+        <button class="tab-btn" data-tab="chat">Chat</button>
+      </div>
+
+      <!-- Search Panel -->
+      <div id="panel-search" class="tab-panel active">
+        <form id="search-form" class="search-form" autocomplete="off">
+          <div class="search-input-wrap">
+            <input
+              id="search-input"
+              class="search-input"
+              type="text"
+              placeholder="Search the knowledge base…"
+              autofocus
+            />
+          </div>
+          <select id="mode-select" class="mode-select">
+            <option value="hybrid">Hybrid</option>
+            <option value="vector">Vector</option>
+            <option value="keyword">Keyword</option>
+          </select>
+          <button id="search-btn" class="search-btn" type="submit">Search</button>
+        </form>
+        <div id="results-container">
+          <div class="empty-state">
+            <div class="empty-state-icon">🔍</div>
+            <div class="empty-state-text">
+              Search across ingested documents using vector similarity, keyword matching, or hybrid retrieval.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Panel -->
+      <div id="panel-chat" class="tab-panel">
+        <div class="chat-container">
+          <div id="chat-messages" class="chat-messages">
+            <div class="empty-state">
+              <div class="empty-state-icon">💬</div>
+              <div class="empty-state-text">
+                Ask questions about the knowledge base. Responses are streamed in real-time with source citations.
+              </div>
+            </div>
+          </div>
+          <form id="chat-form" class="chat-form">
+            <textarea
+              id="chat-input"
+              class="chat-input"
+              placeholder="Ask a question…"
+              rows="1"
+            ></textarea>
+            <button id="chat-send-btn" class="chat-send-btn" type="submit">Send</button>
+          </form>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ── Sidebar ───────────────────────────────────────── -->
+    <aside class="sidebar">
+
+      <!-- Stats -->
+      <div class="sidebar-card">
+        <div class="sidebar-title">Index Stats</div>
+        <div id="stats-container">
+          <div class="stat-row">
+            <span class="stat-label">Loading…</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- A2A Agent Card -->
+      <div class="sidebar-card">
+        <div class="sidebar-title">A2A Agent</div>
+        <div id="agent-container">
+          <div class="agent-desc">Loading agent card…</div>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -2,6 +2,8 @@ import type { RetrievalPipeline } from '../retrieval/pipeline.ts';
 import type { RAGGenerator } from '../generation/generator.ts';
 import type { MockGenerator } from '../generation/generator.ts';
 import type { TaskExecutor } from '../a2a/executor.ts';
+import type { VectorStore } from '../store/types.ts';
+import type { EmbeddingProvider } from '../embeddings/provider.ts';
 import { handleA2ARequest } from '../a2a/server.ts';
 import { SSEStream } from './sse.ts';
 
@@ -11,14 +13,21 @@ export interface RouteContext {
   generator: RAGGenerator | MockGenerator | null;
   executor: TaskExecutor;
   baseUrl: string;
+  store: VectorStore;
+  embedder: EmbeddingProvider;
 }
 
 /** Add CORS headers to a response */
 function withCors(response: Response): Response {
-  response.headers.set('Access-Control-Allow-Origin', '*');
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  return response;
+  const headers = new Headers(response.headers);
+  headers.set('Access-Control-Allow-Origin', '*');
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 /** Main request router */
@@ -59,7 +68,7 @@ export async function handleRequest(req: Request, ctx: RouteContext): Promise<Re
   }
 
   if (pathname === '/api/ingest' && req.method === 'POST') {
-    return withCors(await handleIngest(req));
+    return withCors(await handleIngest(req, ctx));
   }
 
   if (pathname === '/api/stats' && req.method === 'GET') {
@@ -87,7 +96,7 @@ async function handleSearch(req: Request, ctx: RouteContext): Promise<Response> 
   const mode = typeof body.mode === 'string' ? body.mode : undefined;
 
   try {
-    const retrieval = await ctx.pipeline.retrieve(query, { topK, mode });
+    const retrieval = await ctx.pipeline.retrieve(query);
     return Response.json({
       query,
       results: retrieval.results,
@@ -157,7 +166,7 @@ async function handleAsk(req: Request, ctx: RouteContext): Promise<Response> {
 }
 
 /** POST /api/ingest — trigger document ingestion */
-async function handleIngest(req: Request): Promise<Response> {
+async function handleIngest(req: Request, ctx: RouteContext): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
@@ -174,10 +183,8 @@ async function handleIngest(req: Request): Promise<Response> {
   }
 
   try {
-    // Dynamic import so the server module doesn't hard-depend on the ingestion module
-    const { IngestionPipeline } = await import('../ingestion/pipeline.ts');
-    const pipeline = new IngestionPipeline();
-    const result = await pipeline.ingest(directory);
+    const { ingestDirectory } = await import('../ingestion/pipeline.ts');
+    const result = await ingestDirectory(directory, ctx.embedder, ctx.store);
     return Response.json({ status: 'ok', ...result });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Ingestion failed';
@@ -191,19 +198,8 @@ async function handleIngest(req: Request): Promise<Response> {
 /** GET /api/stats — return basic pipeline statistics */
 async function handleStats(ctx: RouteContext): Promise<Response> {
   try {
-    // Try to call getStats on the pipeline if it exposes one
-    const pipeline = ctx.pipeline as Record<string, unknown>;
-    if (typeof pipeline.getStats === 'function') {
-      const stats = await (pipeline.getStats as () => Promise<unknown>)();
-      return Response.json(stats);
-    }
-
-    // Fallback: return basic info
-    return Response.json({
-      documentCount: 0,
-      indexSize: 0,
-      status: 'Stats not available — pipeline does not expose getStats()',
-    });
+    const count = await ctx.store.count();
+    return Response.json({ documentCount: count });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to fetch stats';
     return Response.json({ error: message }, { status: 500 });
