@@ -1,0 +1,6 @@
+[test]
+# Exclude e2e/ directory — Playwright handles those via 'bunx playwright test'
+root = "tests"
+
+# Only match .test.ts files, not .spec.ts (Playwright convention)
+pattern = "**/*.test.ts"

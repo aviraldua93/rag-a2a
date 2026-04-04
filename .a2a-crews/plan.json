@@ -1,0 +1,177 @@
+{
+  "scenario": "Write comprehensive unit tests with bun test for every module (chunker, BM25, hybrid search, reranker, retrieval pipeline, A2A executor, evaluation metrics) and Playwright E2E tests for the web UI search and chat flows. Target 80+ unit tests and full E2E coverage.",
+  "feasibility": {
+    "verdict": "go",
+    "confidence": 0.88,
+    "concerns": [
+      "No existing test files or Playwright config exist — all test infrastructure must be created from scratch",
+      "E2E tests require a running server with MemoryStore + MockEmbedder + MockGenerator; server startup orchestration must be added",
+      "RetrievalPipeline unit tests need mock VectorStore and EmbeddingProvider injected to avoid Qdrant/OpenAI dependencies",
+      "Playwright browsers must be installed (npx playwright install) before E2E tests can run",
+      "The client app.js uses SSE streaming for /api/ask which is tricky to assert in E2E; may need to rely on visible DOM output"
+    ],
+    "recommendation": "Proceed. All modules export pure classes/functions with clean interfaces that accept injected dependencies (MemoryStore, MockEmbedder, MockGenerator). This makes them highly testable without external services. Create a playwright.config.ts with webServer option to auto-start the server with mock providers for E2E."
+  },
+  "rationale": "This is a TypeScript RAG pipeline project with clean module boundaries (chunker, BM25, hybrid, reranker, pipeline, executor, metrics, A2A server, SSE, config, generation prompts). Every module exposes pure functions or classes with dependency injection, making them ideal for isolated unit testing. The web UI is vanilla JS with two main flows (search + chat) perfect for Playwright E2E. The team is split by testing domain: unit test specialists for the retrieval stack vs. the A2A/server stack, plus an E2E specialist for the web UI.",
+  "roles": [
+    {
+      "key": "retrieval-tester",
+      "description": "Writes bun unit tests for all retrieval-stack modules: chunker (3 strategies × edge cases), BM25 (indexing, scoring, tokenization, stemming), hybrid search (RRF fusion, weighting, deduplication), reranker (ScoreReranker term overlap, empty inputs, topK), and the RetrievalPipeline (full orchestration with mocked VectorStore + EmbeddingProvider).",
+      "model": null,
+      "skills": ["bun-test", "typescript", "mocking", "information-retrieval"],
+      "why": "The retrieval stack (5 modules, ~400 LOC) contains the core algorithmic logic (BM25 scoring, RRF, stemming) that demands thorough edge-case and mathematical correctness testing. This is the bulk of the 80+ test target."
+    },
+    {
+      "key": "a2a-server-tester",
+      "description": "Writes bun unit tests for the A2A layer (TaskExecutor lifecycle, agent-card generation, JSON-RPC server dispatch), server routes (search/ask/ingest/stats/health/CORS), SSE streaming helper, config loading, evaluation metrics (MRR, Precision@K, Recall@K, NDCG, contextRelevance), generation prompt builder, and MockGenerator/MockEmbedder.",
+      "model": null,
+      "skills": ["bun-test", "typescript", "http-testing", "json-rpc"],
+      "why": "The A2A protocol layer, HTTP routes, SSE, config, metrics, and generation modules form the integration surface. These require testing JSON-RPC compliance, HTTP status codes, SSE event formatting, and mathematical metric correctness."
+    },
+    {
+      "key": "e2e-tester",
+      "description": "Creates Playwright config, sets up test server fixtures (auto-start server with MemoryStore + MockEmbedder + MockGenerator + seeded BM25 index), and writes E2E tests for: search tab (enter query → see results), search mode switching (hybrid/vector/keyword), chat tab (send message → see streamed response), tab navigation, health badge, stats sidebar, and agent card display.",
+      "model": null,
+      "skills": ["playwright", "e2e-testing", "typescript", "sse-testing"],
+      "why": "The web UI has two primary flows (search and chat with SSE streaming) plus sidebar widgets. E2E tests verify the full stack works end-to-end, catching integration bugs between client JS, HTTP routes, and the pipeline that unit tests cannot."
+    },
+    {
+      "key": "test-infra-lead",
+      "description": "Sets up shared test infrastructure: creates tests/helpers/ with factory functions for mock SearchResults, BM25Documents, RawDocuments, and typed mock implementations of VectorStore and EmbeddingProvider. Ensures bun test config works, installs Playwright browsers, verifies all tests pass in CI-like conditions, and fixes any cross-cutting issues.",
+      "model": null,
+      "skills": ["bun-test", "playwright", "typescript", "test-architecture"],
+      "why": "Multiple testers need shared mocks and helpers (mock VectorStore, mock EmbeddingProvider, factory data). A dedicated infra role prevents duplication and ensures consistent test patterns across 80+ tests."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "setup-test-infra",
+      "title": "Create shared test helpers, mock factories, and Playwright config",
+      "assignedTo": "test-infra-lead",
+      "dependsOn": [],
+      "acceptanceCriteria": [
+        "tests/helpers/mocks.ts exists with: MockVectorStore (implements VectorStore), factory functions for SearchResult[], BM25Document[], RawDocument, and pre-built test datasets",
+        "tests/helpers/fixtures.ts exports reusable test constants (sample queries, sample documents with known content for deterministic BM25 scoring)",
+        "playwright.config.ts exists at project root with webServer config that starts the server using MemoryStore + MockEmbedder + MockGenerator on a test port",
+        "Running 'bun test --help' and 'bunx playwright --help' both succeed without errors",
+        "Playwright browsers are installed via 'bunx playwright install chromium'"
+      ]
+    },
+    {
+      "id": "unit-chunker",
+      "title": "Unit tests for chunker module (all 3 strategies + edge cases)",
+      "assignedTo": "retrieval-tester",
+      "dependsOn": ["setup-test-infra"],
+      "acceptanceCriteria": [
+        "tests/unit/chunker.test.ts has ≥15 tests covering: sliding-window (basic split, overlap correctness, single-chunk doc, empty doc), semantic (paragraph merging, no paragraph breaks, large paragraphs), recursive (separator fallback, hard-split, nested recursion), and metadata correctness (id format, startChar/endChar offsets, strategy field)",
+        "All chunker tests pass with 'bun test tests/unit/chunker.test.ts'",
+        "Tests verify chunk content matches original text sliced at reported offsets (startChar/endChar)",
+        "Tests cover edge cases: empty string, whitespace-only, content shorter than chunkSize, chunkOverlap >= chunkSize"
+      ]
+    },
+    {
+      "id": "unit-bm25",
+      "title": "Unit tests for BM25 index (tokenization, stemming, scoring, search)",
+      "assignedTo": "retrieval-tester",
+      "dependsOn": ["setup-test-infra"],
+      "acceptanceCriteria": [
+        "tests/unit/bm25.test.ts has ≥15 tests covering: indexing (doc count, term frequencies), search (relevant docs ranked higher, topK limiting, empty query, empty index), tokenization (stopword removal, punctuation splitting, Unicode), stemming (ing/ed/ly/er/s/tion suffixes, short words unchanged), BM25 scoring math (k1/b parameter effects, IDF correctness)",
+        "All BM25 tests pass with 'bun test tests/unit/bm25.test.ts'",
+        "Tests use deterministic document sets where expected ranking order is known",
+        "At least one test verifies that re-indexing clears previous state"
+      ]
+    },
+    {
+      "id": "unit-hybrid-reranker",
+      "title": "Unit tests for hybrid search (RRF) and ScoreReranker",
+      "assignedTo": "retrieval-tester",
+      "dependsOn": ["setup-test-infra"],
+      "acceptanceCriteria": [
+        "tests/unit/hybrid.test.ts has ≥8 tests: RRF fusion with overlapping results, disjoint results, single-source results, vectorWeight=0 (pure keyword), vectorWeight=1 (pure vector), k parameter effect, score monotonicity, deduplication",
+        "tests/unit/reranker.test.ts has ≥8 tests: basic reranking, empty results, empty query, topK limiting, term overlap scoring, combined score weighting (60/40 split), case insensitivity, results with zero overlap",
+        "All tests pass with 'bun test tests/unit/hybrid.test.ts tests/unit/reranker.test.ts'"
+      ]
+    },
+    {
+      "id": "unit-pipeline",
+      "title": "Unit tests for RetrievalPipeline with mocked dependencies",
+      "assignedTo": "retrieval-tester",
+      "dependsOn": ["setup-test-infra"],
+      "acceptanceCriteria": [
+        "tests/unit/pipeline.test.ts has ≥8 tests covering: full pipeline retrieve() returns results, metadata fields populated (vectorResultCount, keywordResultCount, etc.), durationMs is positive, pipeline with no BM25 docs indexed, pipeline with empty vector store, rerankTopK limits output count, hybridWeight affects fusion",
+        "Tests use MemoryStore + MockEmbedder + ScoreReranker (real implementations, not mocks where possible)",
+        "All tests pass with 'bun test tests/unit/pipeline.test.ts'"
+      ]
+    },
+    {
+      "id": "unit-metrics",
+      "title": "Unit tests for evaluation metrics (MRR, P@K, R@K, NDCG, contextRelevance)",
+      "assignedTo": "a2a-server-tester",
+      "dependsOn": ["setup-test-infra"],
+      "acceptanceCriteria": [
+        "tests/unit/metrics.test.ts has ≥12 tests: MRR (first result relevant, last result relevant, none relevant), Precision@K (all relevant, none relevant, partial), Recall@K (all found, none found, empty relevant set), NDCG (perfect ranking, inverse ranking, empty), contextRelevance (full overlap, zero overlap, short query terms filtered)",
+        "All metric tests pass with 'bun test tests/unit/metrics.test.ts'",
+        "Tests verify known mathematical values (e.g., MRR=1.0 when first result is relevant, NDCG=1.0 for perfect ranking)"
+      ]
+    },
+    {
+      "id": "unit-a2a-executor",
+      "title": "Unit tests for TaskExecutor, agent-card, and A2A JSON-RPC server",
+      "assignedTo": "a2a-server-tester",
+      "dependsOn": ["setup-test-infra"],
+      "acceptanceCriteria": [
+        "tests/unit/executor.test.ts has ≥10 tests: execute() creates task with correct lifecycle (submitted→working→completed), execute() with generator produces generated-answer artifact, execute() without generator returns retrieval summary, getTask() returns correct task, listTasks() returns all, cancelTask() transitions status, execute() failure sets status=failed, task timestamps update",
+        "tests/unit/agent-card.test.ts has ≥4 tests: card structure, skills array, baseUrl in url field, capabilities flags",
+        "tests/unit/a2a-server.test.ts has ≥8 tests: agent-card GET, message/send, tasks/get, tasks/list, tasks/cancel, method-not-found, invalid JSON, missing params",
+        "All tests pass with 'bun test tests/unit/executor.test.ts tests/unit/agent-card.test.ts tests/unit/a2a-server.test.ts'"
+      ]
+    },
+    {
+      "id": "unit-server-misc",
+      "title": "Unit tests for server routes, SSE, config, prompts, and mock providers",
+      "assignedTo": "a2a-server-tester",
+      "dependsOn": ["setup-test-infra"],
+      "acceptanceCriteria": [
+        "tests/unit/sse.test.ts has ≥4 tests: createResponse headers, send() encodes named events, sendText() encodes data, close() prevents further writes",
+        "tests/unit/config.test.ts has ≥3 tests: default values when no env vars, env var overrides, type correctness",
+        "tests/unit/prompt.test.ts has ≥3 tests: system prompt contains citation instructions, RAG prompt includes context block, empty contexts produce fallback message",
+        "tests/unit/mock-providers.test.ts has ≥4 tests: MockEmbedder determinism (same text → same vector), MockEmbedder different texts → different vectors, MockGenerator generate() returns expected structure, MockGenerator generateStream() yields source/text/done chunks",
+        "All tests pass with 'bun test tests/unit/'"
+      ]
+    },
+    {
+      "id": "e2e-tests",
+      "title": "Playwright E2E tests for search and chat web UI flows",
+      "assignedTo": "e2e-tester",
+      "dependsOn": ["setup-test-infra"],
+      "acceptanceCriteria": [
+        "tests/e2e/search.spec.ts has ≥5 tests: page loads with search tab active, submit search shows results, search mode dropdown changes mode, empty query does not submit, results display score and content",
+        "tests/e2e/chat.spec.ts has ≥5 tests: switching to chat tab shows chat panel, sending message shows user bubble, assistant response appears (streamed), Enter key submits, chat shows sources when available",
+        "tests/e2e/navigation.spec.ts has ≥3 tests: tab switching works, health badge displays, sidebar loads stats/agent card",
+        "All E2E tests pass with 'bunx playwright test' against the auto-started test server",
+        "Tests use data-testid or stable CSS selectors, not fragile text matching"
+      ]
+    },
+    {
+      "id": "verify-coverage",
+      "title": "Run full test suite, verify 80+ unit tests pass, fix any failures",
+      "assignedTo": "test-infra-lead",
+      "dependsOn": [
+        "unit-chunker",
+        "unit-bm25",
+        "unit-hybrid-reranker",
+        "unit-pipeline",
+        "unit-metrics",
+        "unit-a2a-executor",
+        "unit-server-misc",
+        "e2e-tests"
+      ],
+      "acceptanceCriteria": [
+        "'bun test' runs all unit tests and reports ≥80 passing tests with 0 failures",
+        "'bunx playwright test' runs all E2E tests and reports ≥13 passing tests with 0 failures",
+        "No test depends on external services (Qdrant, OpenAI) — all use MemoryStore, MockEmbedder, MockGenerator",
+        "CI-compatible: tests can run without Docker, API keys, or network access"
+      ]
+    }
+  ]
+}

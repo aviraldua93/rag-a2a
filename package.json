@@ -36,7 +36,7 @@
   "scripts": {
     "dev": "bun run --hot src/server/index.ts",
     "start": "bun run src/server/index.ts",
-    "test": "bun test",
+    "test": "bun test tests/setup.test.ts tests/unit/",
     "test:e2e": "bunx playwright test",
     "typecheck": "bun x tsc --noEmit",
     "ingest": "bun run src/ingestion/pipeline.ts",

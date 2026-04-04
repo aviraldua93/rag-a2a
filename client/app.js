@@ -59,7 +59,7 @@ async function askStream(query, onChunk, onSources, onDone) {
 
 async function getHealth() {
   try {
-    const res = await fetch(`${API}/health`);
+    const res = await fetch(`${API}/api/health`);
     if (!res.ok) return { status: 'unhealthy' };
     return res.json();
   } catch {
@@ -79,7 +79,7 @@ async function getStats() {
 
 async function getAgentCard() {
   try {
-    const res = await fetch(`${API}/.well-known/agent.json`);
+    const res = await fetch(`${API}/.well-known/agent-card.json`);
     if (!res.ok) return null;
     return res.json();
   } catch {

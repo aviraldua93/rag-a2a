@@ -1,0 +1,114 @@
+2026-04-04T19:08:47.539Z|agent_registered||test-infra-lead|bun-test,playwright,typescript,test-architecture
+2026-04-04T19:08:47.539Z|task_created|c09ea123-6be0-4ab3-96a8-dcb30c1ff790|test-infra-lead|Create shared test helpers, mock factories, and Playwright config
+2026-04-04T19:13:53.825Z|task_created|67de7b4e-a28e-4dc3-be25-fe5f0390e9ae|test-infra-lead|Create shared test helpers, mock factories, and Playwright config
+2026-04-04T19:13:53.826Z|task_updated|c09ea123-6be0-4ab3-96a8-dcb30c1ff790|test-infra-lead|canceled
+2026-04-04T19:15:18.762Z|task_created|0bf6e4ee-d94d-4a9d-9c92-981975557cce|test-infra-lead|Task completed successfully. Created tests/helpers/mocks.ts (MockVectorStore, MockEmbeddingProvider, MockTestGenerator, factory functions, pre-built datasets), tests/helpers/fixtures.ts (BM25_TEST_CORPUS, RELEVANCE_MAP, GOLDEN_DATASET, sample queries, chunker content), playwright.config.ts (port 49321, MemoryStore+MockEmbedder+MockGenerator), tests/helpers/index.ts (barrel export), tests/setup.test.ts (32 passing smoke tests). Playwright chromium installed.
+2026-04-04T19:15:33.679Z|task_updated|67de7b4e-a28e-4dc3-be25-fe5f0390e9ae|test-infra-lead|completed
+2026-04-04T19:15:34.808Z|agent_registered||retrieval-tester|bun-test,typescript,mocking,information-retrieval
+2026-04-04T19:15:34.808Z|task_created|bfb29fc4-aaa6-47f3-a966-033d5fd9fbc8|retrieval-tester|Unit tests for chunker module (all 3 strategies + edge cases)
+2026-04-04T19:15:35.655Z|agent_registered||retrieval-tester|bun-test,typescript,mocking,information-retrieval
+2026-04-04T19:15:35.656Z|task_created|052fba59-8ce7-4541-a117-92f2cb44e76d|retrieval-tester|Unit tests for BM25 index (tokenization, stemming, scoring, search)
+2026-04-04T19:15:36.515Z|agent_registered||retrieval-tester|bun-test,typescript,mocking,information-retrieval
+2026-04-04T19:15:36.516Z|task_created|e2b4e57d-958d-4e81-be87-65c663105b96|retrieval-tester|Unit tests for hybrid search (RRF) and ScoreReranker
+2026-04-04T19:15:37.381Z|agent_registered||retrieval-tester|bun-test,typescript,mocking,information-retrieval
+2026-04-04T19:15:37.381Z|task_created|08fbe112-e5d4-4380-8fc2-efe1463e28dc|retrieval-tester|Unit tests for RetrievalPipeline with mocked dependencies
+2026-04-04T19:15:38.228Z|agent_registered||a2a-server-tester|bun-test,typescript,http-testing,json-rpc
+2026-04-04T19:15:38.228Z|task_created|c3c1e840-8819-4913-8711-404492a693fa|a2a-server-tester|Unit tests for evaluation metrics (MRR, P@K, R@K, NDCG, contextRelevance)
+2026-04-04T19:15:39.082Z|agent_registered||a2a-server-tester|bun-test,typescript,http-testing,json-rpc
+2026-04-04T19:15:39.083Z|task_created|5c7677e9-a3c9-4c52-accc-f8a1bce976ed|a2a-server-tester|Unit tests for TaskExecutor, agent-card, and A2A JSON-RPC server
+2026-04-04T19:15:39.957Z|agent_registered||a2a-server-tester|bun-test,typescript,http-testing,json-rpc
+2026-04-04T19:15:39.957Z|task_created|cd85c122-44a5-47f4-b153-af35905484db|a2a-server-tester|Unit tests for server routes, SSE, config, prompts, and mock providers
+2026-04-04T19:15:40.806Z|agent_registered||e2e-tester|playwright,e2e-testing,typescript,sse-testing
+2026-04-04T19:15:40.807Z|task_created|21d51085-7ae7-4b8e-8c13-7aef38f17189|e2e-tester|Playwright E2E tests for search and chat web UI flows
+2026-04-04T19:17:33.547Z|task_created|08f4c3cb-a3c1-4a30-9d92-1c4c64c6e969|test-infra-lead|Task completed successfully. All test infrastructure is in place: mocks.ts, fixtures.ts, index.ts, playwright.config.ts, 32 smoke tests passing, Playwright chromium installed.
+2026-04-04T19:20:13.130Z|task_created|fce4375f-c2c0-4e50-a256-38a7930857ab|test-infra-lead|Task completed successfully. metrics.test.ts has 24 tests covering MRR, Precision@K, Recall@K, NDCG, contextRelevance. All pass.
+2026-04-04T19:20:13.179Z|task_created|909d4e56-6b6d-4f1e-8068-6cfacd53a2c6|test-infra-lead|Task completed. executor.test.ts=13 tests, agent-card.test.ts=5 tests, a2a-server.test.ts=12 tests. All 30 pass.
+2026-04-04T19:20:13.188Z|task_created|af01979e-2d17-45c2-add0-b9b45db4b03c|test-infra-lead|Task completed. sse.test.ts=5, config.test.ts=3, prompt.test.ts=6, mock-providers.test.ts=9. All 23 tests pass.
+2026-04-04T19:20:17.056Z|task_created|7d64648a-ab62-436c-aac9-08787204061f|test-infra-lead|Task completed: 22 chunker tests passing (sliding-window, semantic, recursive, metadata)
+2026-04-04T19:20:17.222Z|task_created|06758edc-4c33-43f7-87ff-602d5744129b|test-infra-lead|Task completed: 20 tests passing (10 hybrid RRF + 10 reranker)
+2026-04-04T19:20:17.367Z|task_created|55e7d6aa-7cbf-43a9-b7ee-2666a5db878f|test-infra-lead|Task completed: 9 pipeline tests passing with real MemoryStore + MockEmbedder + ScoreReranker
+2026-04-04T19:20:17.400Z|task_created|fffd3c88-89d6-4ef6-b6e1-bb4df25db667|test-infra-lead|Task completed: 26 BM25 tests passing (indexing, search, tokenization, stemming, scoring)
+2026-04-04T19:20:23.640Z|task_created|ac22c46c-a040-42d9-9d08-4b7aeace2226|test-infra-lead|Task completed successfully. 24 metric tests pass: MRR (5 tests), Precision@K (4 tests), Recall@K (4 tests), NDCG (6 tests), contextRelevance (5 tests).
+2026-04-04T19:20:32.614Z|task_created|bb2fa521-f076-4b1b-ad55-46632cbe39d0|test-infra-lead|Task completed: 24 metric tests (MRR, P@K, R@K, NDCG, contextRelevance) all passing
+2026-04-04T19:20:32.654Z|task_created|6ead322c-5809-4f3b-a511-8aa2cd2f0ca3|test-infra-lead|Task completed: 30 A2A tests (executor, agent-card, server) all passing
+2026-04-04T19:20:32.663Z|task_created|8312f61d-b55b-4462-9be3-d364ae7e53e6|test-infra-lead|Task completed: 23 server-misc tests (SSE 5, config 3, prompt 6, mock-providers 9) all passing
+2026-04-04T19:20:34.339Z|task_created|bfd7f398-16bb-4bb4-8c14-679760ac5164|test-infra-lead|Agent completed
+2026-04-04T19:20:34.367Z|task_updated|08fbe112-e5d4-4380-8fc2-efe1463e28dc|retrieval-tester|completed
+2026-04-04T19:20:34.509Z|task_created|1b245476-4170-44cd-b365-c466903666f7|test-infra-lead|Task completed successfully. 30 tests pass: executor (13), agent-card (5), a2a-server (12).
+2026-04-04T19:20:34.540Z|task_created|582aefdd-1aa8-4594-b2c2-7422281ec860|test-infra-lead|Task completed successfully. 23 tests pass: SSE (5), config (3), prompt (6), mock-providers (9).
+2026-04-04T19:20:37.543Z|task_created|1ab67a9d-d746-4d54-8809-41b51ad9d239|retrieval-tester|Unit tests for chunker module (all 3 strategies + edge cases)
+2026-04-04T19:20:37.543Z|task_updated|bfb29fc4-aaa6-47f3-a966-033d5fd9fbc8|retrieval-tester|canceled
+2026-04-04T19:20:39.582Z|task_created|4666a74d-48c6-4b02-86e0-600e81563935|test-infra-lead|Agent completed
+2026-04-04T19:20:39.605Z|task_updated|5c7677e9-a3c9-4c52-accc-f8a1bce976ed|a2a-server-tester|completed
+2026-04-04T19:20:39.889Z|task_created|6f9282ef-8f17-40d2-bcdf-f3b3710f61b4|test-infra-lead|Agent completed
+2026-04-04T19:20:39.909Z|task_updated|cd85c122-44a5-47f4-b153-af35905484db|a2a-server-tester|completed
+2026-04-04T19:20:43.637Z|task_created|9fd5a073-2279-40e0-8000-1b4391c1f1e9|retrieval-tester|Unit tests for BM25 index (tokenization, stemming, scoring, search)
+2026-04-04T19:20:43.637Z|task_updated|052fba59-8ce7-4541-a117-92f2cb44e76d|retrieval-tester|canceled
+2026-04-04T19:20:49.655Z|task_created|0caf811f-9f70-4608-86a2-95b0a0cf8d4d|test-infra-lead|Task completed: 22 chunker unit tests all passing
+2026-04-04T19:20:49.692Z|task_created|90816a95-a1aa-4e6c-a0d7-9f82d6630072|test-infra-lead|Task completed: 26 BM25 unit tests all passing
+2026-04-04T19:20:49.700Z|task_created|0534264e-caf5-499a-92ea-ab1b132c77f0|test-infra-lead|Task completed: 10 hybrid + 10 reranker unit tests all passing
+2026-04-04T19:20:49.709Z|task_created|e4fc2f54-f26d-4c71-8bec-560c40025a6a|test-infra-lead|Task completed: 9 pipeline unit tests all passing
+2026-04-04T19:20:49.841Z|task_created|ad253145-f9ce-4cc1-a4ab-4e14eb573991|retrieval-tester|Unit tests for hybrid search (RRF) and ScoreReranker
+2026-04-04T19:20:49.841Z|task_updated|e2b4e57d-958d-4e81-be87-65c663105b96|retrieval-tester|canceled
+2026-04-04T19:20:54.611Z|task_created|82f8bc4e-d32e-4608-979d-559abdd710dc|test-infra-lead|Task completed: 22 chunker unit tests all passing
+2026-04-04T19:20:54.652Z|task_created|44da3825-85cc-497d-8f94-e06657ae0059|test-infra-lead|Task completed: 26 BM25 unit tests all passing
+2026-04-04T19:20:54.660Z|task_created|964d5d42-2abc-4687-83bf-c434fd30c006|test-infra-lead|Task completed: 10 hybrid + 10 reranker unit tests all passing
+2026-04-04T19:20:54.666Z|task_created|b0c191c5-f58a-4702-94e5-9a7cdf5c9cc4|test-infra-lead|Task completed: 9 pipeline unit tests all passing
+2026-04-04T19:20:55.964Z|task_created|cc8acd7a-9660-4217-ad5d-b220ee0d92a0|a2a-server-tester|Unit tests for evaluation metrics (MRR, P@K, R@K, NDCG, contextRelevance)
+2026-04-04T19:20:55.964Z|task_updated|c3c1e840-8819-4913-8711-404492a693fa|a2a-server-tester|canceled
+2026-04-04T19:20:59.619Z|task_created|fe4ff15a-8f66-40c6-aa70-0b7c75b521a5|test-infra-lead|Agent completed
+2026-04-04T19:20:59.639Z|task_updated|052fba59-8ce7-4541-a117-92f2cb44e76d|retrieval-tester|completed
+2026-04-04T19:21:02.004Z|task_created|21af26c4-bb78-47f4-afcc-d867294e3163|e2e-tester|Playwright E2E tests for search and chat web UI flows
+2026-04-04T19:21:02.004Z|task_updated|21d51085-7ae7-4b8e-8c13-7aef38f17189|e2e-tester|canceled
+2026-04-04T19:21:02.144Z|task_created|23b35d10-d6e2-4c4b-8f85-29dbf4e15c68|test-infra-lead|Agent completed
+2026-04-04T19:21:02.179Z|task_updated|08fbe112-e5d4-4380-8fc2-efe1463e28dc|retrieval-tester|completed
+2026-04-04T19:21:12.528Z|task_created|d3c5e8f1-ab0d-4e11-aaeb-a71929303594|test-infra-lead|Agent completed
+2026-04-04T19:21:12.551Z|task_updated|cd85c122-44a5-47f4-b153-af35905484db|a2a-server-tester|completed
+2026-04-04T19:21:32.901Z|task_created|b02b1f81-7556-4da7-b2a5-10a13ded1728|test-infra-lead|Task completed: 22 chunker unit tests all passing
+2026-04-04T19:21:32.941Z|task_created|d7403c32-1766-480f-87e8-559ee26e1b5c|test-infra-lead|Task completed: 26 BM25 unit tests all passing
+2026-04-04T19:21:32.948Z|task_created|80da132d-8a67-4386-a3b8-596f5c959611|test-infra-lead|Task completed: 10 hybrid + 10 reranker unit tests all passing
+2026-04-04T19:21:32.955Z|task_created|92d93a1b-6476-41cf-a112-a40dc10d1e03|test-infra-lead|Task completed: 9 pipeline unit tests all passing
+2026-04-04T19:21:41.709Z|task_created|dfe0b0ac-3ae0-4d0d-9e91-123d02e07925|test-infra-lead|Agent completed
+2026-04-04T19:21:41.757Z|task_updated|e2b4e57d-958d-4e81-be87-65c663105b96|retrieval-tester|completed
+2026-04-04T19:22:09.662Z|task_created|d4ec0210-73a3-4d5e-92d5-d059786e84b0|test-infra-lead|Task completed successfully. 22 chunker unit tests pass (all 3 strategies + edge cases + metadata).
+2026-04-04T19:22:09.891Z|task_created|58aa3ea1-8768-4d3e-8342-d618e7b54d52|test-infra-lead|Task completed successfully. 26 BM25 unit tests pass (indexing, search, tokenization, stemming, scoring).
+2026-04-04T19:22:09.923Z|task_created|8e464229-17d9-4c75-9b44-c0ec7c11db4c|test-infra-lead|Task completed successfully. 20 tests pass: 10 hybrid (RRF) + 10 reranker.
+2026-04-04T19:22:09.994Z|task_created|1f48098a-eecc-4a92-b465-985b7f300e5d|test-infra-lead|Task completed successfully. 9 pipeline unit tests pass with real MemoryStore + MockEmbedder + ScoreReranker.
+2026-04-04T19:22:15.315Z|task_created|a7fba2b6-e25c-47cc-a116-d6b8751179b8|test-infra-lead|Task completed successfully - 22 chunker tests pass
+2026-04-04T19:22:15.457Z|task_created|d07426a5-9b66-4da7-8bc5-305c91783145|test-infra-lead|Task completed successfully - 20 hybrid/reranker tests pass
+2026-04-04T19:22:15.551Z|task_created|b74b4034-9b46-45d2-972a-c4dcaae5e460|test-infra-lead|Task completed successfully - 9 pipeline tests pass
+2026-04-04T19:22:15.551Z|task_created|bd965835-9688-4b69-8b7f-cb4f69508d8b|test-infra-lead|Task completed successfully - 26 BM25 tests pass
+2026-04-04T19:22:17.435Z|task_created|08eb0ba9-58b9-42e7-9073-0d837d10b8e7|test-infra-lead|Agent completed
+2026-04-04T19:22:17.461Z|task_updated|1ab67a9d-d746-4d54-8809-41b51ad9d239|retrieval-tester|completed
+2026-04-04T19:22:22.507Z|task_created|b2d06957-f78a-46ec-8cbe-bab2a9b6c551|test-infra-lead|Agent completed
+2026-04-04T19:22:22.537Z|task_updated|ad253145-f9ce-4cc1-a4ab-4e14eb573991|retrieval-tester|completed
+2026-04-04T19:22:23.014Z|task_created|10154a3f-14b7-419e-9cfc-4968eb7b718f|test-infra-lead|Task completed: 22 chunker tests all pass
+2026-04-04T19:22:23.077Z|task_created|4efa66a1-bbd0-46f6-adc7-d936fcf68f30|test-infra-lead|Task completed: 26 BM25 tests all pass
+2026-04-04T19:22:23.090Z|task_created|a54afe1f-2003-4ffe-88dc-8bfff9e74fc7|test-infra-lead|Task completed: 20 hybrid+reranker tests all pass
+2026-04-04T19:22:23.100Z|task_created|967af06b-3a62-4e60-8f76-91f8f773fd9f|test-infra-lead|Task completed: 9 pipeline tests all pass
+2026-04-04T19:22:23.686Z|task_created|3e9f6d09-5dcc-47b1-9efb-b3c688140a79|test-infra-lead|Task completed successfully. 24 metrics tests pass: MRR(5), PrecisionAtK(4), RecallAtK(4), NDCG(6), contextRelevance(5)
+2026-04-04T19:22:23.832Z|task_created|5e8a67f6-bb79-47a5-89a8-8e01aa5eb321|test-infra-lead|Task completed successfully. 23 misc tests pass: sse(5), config(3), prompt(6), mock-providers(9)
+2026-04-04T19:22:23.837Z|task_created|e6e3fca1-f20f-4bd8-935a-2c459c25ab81|test-infra-lead|Task completed successfully. 30 A2A tests pass: executor(13), agent-card(5), a2a-server(12)
+2026-04-04T19:22:30.962Z|task_created|276d1796-b7d0-45ee-b97b-e37b84d0dbff|test-infra-lead|Agent completed
+2026-04-04T19:22:30.986Z|task_updated|9fd5a073-2279-40e0-8000-1b4391c1f1e9|retrieval-tester|completed
+2026-04-04T19:22:35.407Z|task_created|a62ae314-60bf-4708-8022-eaed49dbe750|test-infra-lead|Agent completed
+2026-04-04T19:22:35.431Z|task_updated|cc8acd7a-9660-4217-ad5d-b220ee0d92a0|a2a-server-tester|completed
+2026-04-04T19:25:24.023Z|task_created|fc593282-7a3f-4edb-b655-806f5b0ba33e|test-infra-lead|Task completed successfully. Created 23 Playwright E2E tests across 3 files (search.spec.ts: 8 tests, chat.spec.ts: 8 tests, navigation.spec.ts: 7 tests). All 50 E2E tests pass (23 new + 27 existing). Fixed 3 client path bugs as prerequisites.
+2026-04-04T19:25:51.554Z|task_created|d405e16d-9705-46f0-84b5-a8503d7497ee|test-infra-lead|Agent completed
+2026-04-04T19:25:51.586Z|task_updated|21d51085-7ae7-4b8e-8c13-7aef38f17189|e2e-tester|completed
+2026-04-04T19:26:03.544Z|task_created|8e8b4489-1125-4d49-989e-5dad7e161553|e2e-tester|Playwright E2E tests for search and chat web UI flows
+2026-04-04T19:26:03.545Z|task_updated|21af26c4-bb78-47f4-afcc-d867294e3163|e2e-tester|canceled
+2026-04-04T19:27:07.500Z|task_created|2964c854-a0b7-4f5b-bdfe-5d1c747cd89a|test-infra-lead|Task completed successfully. All 50 Playwright E2E tests pass: search.spec.ts (8 tests), chat.spec.ts (8 tests), navigation.spec.ts (7 tests), plus 27 pre-existing app.spec.ts tests. Tests use stable CSS selectors and route interception for deterministic API responses.
+2026-04-04T19:27:21.644Z|task_created|9764f64f-082c-41e7-b6f5-ae86f43bf009|test-infra-lead|Task completed successfully. 186 unit tests pass (0 failures), 50 E2E tests pass (0 failures). All tests use MemoryStore, MockEmbedder, MockGenerator. CI-compatible.
+2026-04-04T19:27:25.900Z|task_created|8b989722-1422-48ab-bdf7-753749ae9e7c|test-infra-lead|Agent completed
+2026-04-04T19:27:25.926Z|task_updated|21af26c4-bb78-47f4-afcc-d867294e3163|e2e-tester|completed
+2026-04-04T19:27:39.224Z|task_created|e244b54e-bb7d-40f9-96dc-13446fe4a440|test-infra-lead|Agent completed
+2026-04-04T19:27:39.251Z|task_updated|67de7b4e-a28e-4dc3-be25-fe5f0390e9ae|test-infra-lead|completed
+2026-04-04T19:28:03.938Z|task_created|63d94a85-79de-4aa5-b631-c74a7387ea74|test-infra-lead|Task completed successfully. All 50 Playwright E2E tests pass (search.spec.ts: 8 tests, chat.spec.ts: 8 tests, navigation.spec.ts: 7 tests, app.spec.ts: 27 tests). Tests cover search flows, chat streaming, tab navigation, health badge, stats sidebar, and agent card display.
+2026-04-04T19:28:34.835Z|task_updated|8e8b4489-1125-4d49-989e-5dad7e161553|e2e-tester|completed
+2026-04-04T19:28:39.743Z|agent_registered||test-infra-lead|bun-test,playwright,typescript,test-architecture
+2026-04-04T19:28:39.744Z|task_created|e9ecfa07-7e43-40b0-a6d8-b58bd474afb3|test-infra-lead|Run full test suite, verify 80+ unit tests pass, fix any failures
+2026-04-04T19:28:42.800Z|task_created|77ab9f86-abc2-4071-beab-e27b03215e00|test-infra-lead|Agent completed
+2026-04-04T19:28:42.830Z|task_updated|8e8b4489-1125-4d49-989e-5dad7e161553|e2e-tester|completed
+2026-04-04T19:30:42.065Z|task_created|8d16e8a7-8467-4c51-b0ca-c7096d858962|test-infra-lead|Task completed successfully. 186 unit tests pass (0 failures) across 14 files. 50 E2E Playwright tests pass (0 failures) across 4 spec files. All tests CI-compatible: no Docker, no API keys, no network access required.
+2026-04-04T19:30:42.127Z|task_updated|e9ecfa07-7e43-40b0-a6d8-b58bd474afb3|test-infra-lead|completed
