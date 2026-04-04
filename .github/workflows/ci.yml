@@ -1,0 +1,14 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bun x tsc --noEmit
+      - run: bun test tests/setup.test.ts tests/unit/
+      - name: Install Playwright
+        run: bunx playwright install --with-deps chromium
+      - run: bunx playwright test

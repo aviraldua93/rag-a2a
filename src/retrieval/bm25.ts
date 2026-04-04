@@ -62,6 +62,11 @@ export class BM25Index {
     this.b = b;
   }
 
+  /** Return the number of currently indexed documents. */
+  getIndexedCount(): number {
+    return this.documents.length;
+  }
+
   /**
    * Index a set of documents for BM25 search.
    * Replaces any previously indexed documents.

@@ -57,7 +57,23 @@ export async function handleRequest(req: Request, ctx: RouteContext): Promise<Re
 
   // --- API routes ---
   if (pathname === '/api/health' && req.method === 'GET') {
-    return withCors(Response.json({ status: 'ok', version: '0.1.0' }));
+    try {
+      const docCount = await ctx.store.count();
+      const bm25Count = ctx.pipeline.getIndexedCount();
+      return withCors(Response.json({
+        status: 'ok',
+        version: '0.1.0',
+        store: { connected: true, documents: docCount },
+        bm25: { indexed: bm25Count },
+      }));
+    } catch {
+      return withCors(Response.json({
+        status: 'degraded',
+        version: '0.1.0',
+        store: { connected: false, documents: 0 },
+        bm25: { indexed: 0 },
+      }));
+    }
   }
 
   if (pathname === '/api/search' && req.method === 'POST') {
@@ -102,6 +118,7 @@ async function handleSearch(req: Request, ctx: RouteContext): Promise<Response> 
       query,
       results: retrieval.results,
       count: retrieval.results.length,
+      metadata: retrieval.metadata,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Search failed';
@@ -198,6 +215,14 @@ async function handleIngest(req: Request, ctx: RouteContext): Promise<Response> 
   try {
     const { ingestDirectory } = await import('../ingestion/pipeline.ts');
     const result = await ingestDirectory(directory, ctx.embedder, ctx.store);
+
+    // Rebuild BM25 index from all stored documents so keyword search works
+    const allDocs = await ctx.store.getAll();
+    ctx.pipeline.indexDocuments(
+      allDocs.map((doc) => ({ id: doc.id, content: doc.content, metadata: doc.metadata })),
+    );
+    ctx.pipeline.invalidateCache();
+
     return Response.json({ status: 'ok', ...result });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Ingestion failed';

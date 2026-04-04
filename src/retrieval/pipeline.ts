@@ -59,6 +59,11 @@ export class RetrievalPipeline {
     this.bm25Index.index(documents);
   }
 
+  /** Return the number of documents in the BM25 index. */
+  getIndexedCount(): number {
+    return this.bm25Index.getIndexedCount();
+  }
+
   /** Invalidate the query cache (e.g. after ingestion). */
   invalidateCache(): void {
     this.cache.invalidate();
