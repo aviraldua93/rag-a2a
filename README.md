@@ -2,7 +2,7 @@
 
 > Production-grade Retrieval-Augmented Generation pipeline exposed as an [A2A](https://google.github.io/A2A/) agent — hybrid search, reranking, streaming answers, zero required API keys.
 
-![Tests](https://img.shields.io/badge/tests-236%20passing-brightgreen)
+[![CI](https://github.com/aviraldua93/rag-a2a/actions/workflows/ci.yml/badge.svg)](https://github.com/aviraldua93/rag-a2a/actions/workflows/ci.yml)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
 ![Bun](https://img.shields.io/badge/Bun-runtime-f9f1e1?logo=bun&logoColor=black)
 ![License](https://img.shields.io/badge/license-MIT-blue)
@@ -373,6 +373,7 @@ All configuration is via environment variables with sensible defaults:
 | `OPENAI_API_KEY` | _(empty — uses mock)_ | OpenAI API key |
 | `EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model |
 | `GENERATION_MODEL` | `gpt-4o-mini` | LLM for answer generation |
+| `COHERE_API_KEY` | _(empty — uses ScoreReranker)_ | Cohere API key for cross-encoder reranking (model: rerank-v3.5) |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant endpoint |
 | `QDRANT_COLLECTION` | `rag-a2a` | Qdrant collection name |
 | `PORT` | `3737` | Server port |

@@ -3,55 +3,70 @@ import type { SearchResult } from '../store/types.ts';
 import type { GenerationResult, StreamChunk } from './types.ts';
 import { buildRAGPrompt, buildSystemPrompt } from './prompt.ts';
 import { verifyCitations } from './guardrails.ts';
+import { Semaphore } from '../concurrency/semaphore.ts';
+
+/** Default max concurrent generation API calls. */
+const DEFAULT_GENERATION_CONCURRENCY = 2;
 
 /** LLM-powered RAG answer generator using OpenAI */
 export class RAGGenerator {
   private client: OpenAI;
   private model: string;
+  private semaphore: Semaphore;
 
   constructor(apiKey: string, model?: string) {
     this.client = new OpenAI({ apiKey });
     this.model = model ?? 'gpt-4o-mini';
+
+    const concurrency = parseInt(
+      process.env.GENERATION_CONCURRENCY ?? String(DEFAULT_GENERATION_CONCURRENCY),
+      10,
+    );
+    this.semaphore = new Semaphore(
+      Number.isFinite(concurrency) && concurrency >= 1 ? concurrency : DEFAULT_GENERATION_CONCURRENCY,
+    );
   }
 
   /** Generate a complete answer (non-streaming) */
   async generate(query: string, contexts: SearchResult[]): Promise<GenerationResult> {
-    const start = performance.now();
-    const systemPrompt = buildSystemPrompt();
-    const userPrompt = buildRAGPrompt(query, contexts);
+    return this.semaphore.withLock(async () => {
+      const start = performance.now();
+      const systemPrompt = buildSystemPrompt();
+      const userPrompt = buildRAGPrompt(query, contexts);
 
-    const response = await this.client.chat.completions.create({
-      model: this.model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.1,
-      max_tokens: 2048,
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.1,
+        max_tokens: 2048,
+      });
+
+      const choice = response.choices[0];
+      const answer = choice?.message?.content ?? '';
+      const durationMs = Math.round(performance.now() - start);
+
+      const guardrailResult = verifyCitations(answer, contexts);
+
+      return {
+        answer,
+        sources: contexts.map(ctx => ({
+          id: ctx.id,
+          content: ctx.content,
+          score: ctx.score,
+        })),
+        model: this.model,
+        tokensUsed: response.usage?.total_tokens,
+        durationMs,
+        guardrail: {
+          isGrounded: guardrailResult.isGrounded,
+          groundingScore: guardrailResult.groundingScore,
+          hallucinations: guardrailResult.hallucinations,
+        },
+      };
     });
-
-    const choice = response.choices[0];
-    const answer = choice?.message?.content ?? '';
-    const durationMs = Math.round(performance.now() - start);
-
-    const guardrailResult = verifyCitations(answer, contexts);
-
-    return {
-      answer,
-      sources: contexts.map(ctx => ({
-        id: ctx.id,
-        content: ctx.content,
-        score: ctx.score,
-      })),
-      model: this.model,
-      tokensUsed: response.usage?.total_tokens,
-      durationMs,
-      guardrail: {
-        isGrounded: guardrailResult.isGrounded,
-        groundingScore: guardrailResult.groundingScore,
-        hallucinations: guardrailResult.hallucinations,
-      },
-    };
   }
 
   /** Generate a streaming answer via async generator */
@@ -73,6 +88,8 @@ export class RAGGenerator {
       };
     }
 
+    // Acquire semaphore for the streaming API call
+    const release = await this.semaphore.acquire();
     try {
       const stream = await this.client.chat.completions.create({
         model: this.model,
@@ -96,6 +113,8 @@ export class RAGGenerator {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown generation error';
       yield { type: 'error' as const, content: message };
+    } finally {
+      release();
     }
   }
 }

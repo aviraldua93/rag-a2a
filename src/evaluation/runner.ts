@@ -1,4 +1,5 @@
 import type { RetrievalPipeline } from '../retrieval/pipeline.ts';
+import { logger } from '../logger.ts';
 import {
   meanReciprocalRank,
   precisionAtK,
@@ -8,6 +9,8 @@ import {
   type EvaluationResult,
   type EvaluationSummary,
 } from './metrics.ts';
+
+const log = logger.child({ component: 'evaluation' });
 
 export interface GoldenExample {
   query: string;
@@ -56,23 +59,22 @@ export async function runEvaluation(
   };
 }
 
-/** Print evaluation summary to console */
+/** Print evaluation summary using structured logging */
 export function printSummary(summary: EvaluationSummary): void {
-  console.log('\n📊 RAG Evaluation Results');
-  console.log('═'.repeat(50));
-  console.log(`  Queries evaluated: ${summary.totalQueries}`);
-  console.log(`  Mean Reciprocal Rank:  ${(summary.avgMRR * 100).toFixed(1)}%`);
-  console.log(`  Precision@5:           ${(summary.avgPrecisionAt5 * 100).toFixed(1)}%`);
-  console.log(`  Recall@5:              ${(summary.avgRecallAt5 * 100).toFixed(1)}%`);
-  console.log(`  NDCG@5:                ${(summary.avgNDCGAt5 * 100).toFixed(1)}%`);
-  console.log(`  Context Relevance:     ${(summary.avgContextRelevance * 100).toFixed(1)}%`);
-  console.log('═'.repeat(50));
+  log.info({
+    totalQueries: summary.totalQueries,
+    avgMRR: +(summary.avgMRR * 100).toFixed(1),
+    avgPrecisionAt5: +(summary.avgPrecisionAt5 * 100).toFixed(1),
+    avgRecallAt5: +(summary.avgRecallAt5 * 100).toFixed(1),
+    avgNDCGAt5: +(summary.avgNDCGAt5 * 100).toFixed(1),
+    avgContextRelevance: +(summary.avgContextRelevance * 100).toFixed(1),
+  }, 'RAG Evaluation Results');
 
-  // Per-query breakdown
-  console.log('\nPer-query breakdown:');
   for (const r of summary.results) {
-    const mrr = (r.mrr * 100).toFixed(0);
-    const p5 = (r.precisionAt5 * 100).toFixed(0);
-    console.log(`  "${r.query.slice(0, 50)}..." → MRR: ${mrr}%, P@5: ${p5}%`);
+    log.info({
+      query: r.query.slice(0, 50),
+      mrr: +(r.mrr * 100).toFixed(0),
+      precisionAt5: +(r.precisionAt5 * 100).toFixed(0),
+    }, 'Per-query result');
   }
 }

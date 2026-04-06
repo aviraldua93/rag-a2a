@@ -1,10 +1,15 @@
 import type { VectorStore, SearchResult } from '../store/types.ts';
 import type { EmbeddingProvider } from '../embeddings/provider.ts';
 import type { Reranker } from './reranker.ts';
+import type { HyDEExpander } from './hyde.ts';
 import { VectorSearcher } from './vector-search.ts';
 import { BM25Index, type BM25Document } from './bm25.ts';
 import { reciprocalRankFusion } from './hybrid.ts';
 import { LRUCache } from './cache.ts';
+import { logger } from '../logger.ts';
+
+/** @internal Exported for test spying only */
+export const _retrievalLog = logger.child({ component: 'retrieval' });
 
 /** Configuration for the retrieval pipeline. */
 export interface RetrievalPipelineOptions {
@@ -26,6 +31,7 @@ export interface RetrievalResult {
     rerankResultCount: number;
     durationMs: number;
     cacheHit?: boolean;
+    hydeUsed?: boolean;
   };
 }
 
@@ -41,16 +47,21 @@ export class RetrievalPipeline {
   private bm25Index: BM25Index;
   private reranker: Reranker;
   private cache: LRUCache<string, RetrievalResult>;
+  private embedder: EmbeddingProvider;
+  private hydeExpander: HyDEExpander | null;
 
   constructor(
     store: VectorStore,
     embedder: EmbeddingProvider,
     reranker: Reranker,
     private options: RetrievalPipelineOptions,
+    hydeExpander?: HyDEExpander,
   ) {
     this.vectorSearcher = new VectorSearcher(store, embedder);
     this.bm25Index = new BM25Index();
     this.reranker = reranker;
+    this.embedder = embedder;
+    this.hydeExpander = hydeExpander ?? null;
     this.cache = new LRUCache<string, RetrievalResult>(100, 300_000);
   }
 
@@ -94,9 +105,22 @@ export class RetrievalPipeline {
     // Run vector and keyword search based on mode
     let vectorResults: SearchResult[] = [];
     let keywordResults: SearchResult[] = [];
+    let hydeUsed = false;
 
     if (mode === 'vector' || mode === 'hybrid') {
-      vectorResults = await this.vectorSearcher.search(query, topK);
+      // Try HyDE expansion: embed a hypothetical answer instead of the raw query
+      if (this.hydeExpander) {
+        const expansion = await this.hydeExpander.expand(query);
+        if (expansion) {
+          vectorResults = await this.vectorSearcher.searchByVector(expansion.vector, topK);
+          hydeUsed = true;
+        }
+      }
+      // Fallback to standard query embedding when HyDE is unavailable or fails
+      if (!hydeUsed) {
+        vectorResults = await this.vectorSearcher.search(query, topK);
+      }
+      this.checkEmbeddingModelMismatch(vectorResults);
     }
     if (mode === 'keyword' || mode === 'hybrid') {
       keywordResults = this.bm25Index.search(query, topK);
@@ -116,6 +140,7 @@ export class RetrievalPipeline {
           rerankResultCount: rerankedResults.length,
           durationMs: performance.now() - start,
           cacheHit: false,
+          hydeUsed,
         },
       };
       this.cache.set(cacheKey, result);
@@ -133,6 +158,7 @@ export class RetrievalPipeline {
           rerankResultCount: rerankedResults.length,
           durationMs: performance.now() - start,
           cacheHit: false,
+          hydeUsed,
         },
       };
       this.cache.set(cacheKey, result);
@@ -161,9 +187,32 @@ export class RetrievalPipeline {
         rerankResultCount: rerankedResults.length,
         durationMs: performance.now() - start,
         cacheHit: false,
+        hydeUsed,
       },
     };
     this.cache.set(cacheKey, result);
     return result;
+  }
+
+  /**
+   * Check returned results for embedding model mismatches.
+   * Emits a warning when any result was embedded with a different model
+   * than the currently configured embedder.
+   */
+  private checkEmbeddingModelMismatch(results: SearchResult[]): void {
+    const currentModel = this.embedder.modelName;
+    const mismatched = results.filter(
+      (r) =>
+        r.metadata.embeddingModel != null &&
+        r.metadata.embeddingModel !== currentModel,
+    );
+    if (mismatched.length > 0) {
+      const storedModel = mismatched[0].metadata.embeddingModel;
+      _retrievalLog.warn({
+        mismatchCount: mismatched.length,
+        storedModel,
+        currentModel,
+      }, `Embedding model mismatch: ${mismatched.length} result(s) were embedded with '${storedModel}' but the current embedder uses '${currentModel}'. Re-ingest documents to align embedding models.`);
+    }
   }
 }

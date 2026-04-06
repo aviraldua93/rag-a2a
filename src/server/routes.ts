@@ -7,6 +7,9 @@ import type { EmbeddingProvider } from '../embeddings/provider.ts';
 import { handleA2ARequest } from '../a2a/server.ts';
 import { SSEStream } from './sse.ts';
 import { resolve, normalize } from 'node:path';
+import { createRequestLogger } from '../logger.ts';
+import type { Logger } from 'pino';
+import { v4 as uuidv4 } from 'uuid';
 
 /** Dependencies injected into the request handler */
 export interface RouteContext {
@@ -36,10 +39,16 @@ export async function handleRequest(req: Request, ctx: RouteContext): Promise<Re
   const url = new URL(req.url);
   const { pathname } = url;
 
+  // Generate a unique request ID for tracing
+  const requestId = req.headers.get('x-request-id') ?? uuidv4();
+  const log = createRequestLogger(requestId);
+
   // CORS preflight
   if (req.method === 'OPTIONS') {
     return withCors(new Response(null, { status: 204 }));
   }
+
+  log.info({ method: req.method, path: pathname }, 'Incoming request');
 
   // --- A2A routes ---
   if (pathname === '/.well-known/agent-card.json' || pathname === '/a2a') {
@@ -77,26 +86,27 @@ export async function handleRequest(req: Request, ctx: RouteContext): Promise<Re
   }
 
   if (pathname === '/api/search' && req.method === 'POST') {
-    return withCors(await handleSearch(req, ctx));
+    return withCors(await handleSearch(req, ctx, log));
   }
 
   if (pathname === '/api/ask' && req.method === 'POST') {
-    return withCors(await handleAsk(req, ctx));
+    return withCors(await handleAsk(req, ctx, log));
   }
 
   if (pathname === '/api/ingest' && req.method === 'POST') {
-    return withCors(await handleIngest(req, ctx));
+    return withCors(await handleIngest(req, ctx, log));
   }
 
   if (pathname === '/api/stats' && req.method === 'GET') {
     return withCors(await handleStats(ctx));
   }
 
+  log.warn({ path: pathname }, 'Route not found');
   return withCors(Response.json({ error: 'Not Found' }, { status: 404 }));
 }
 
 /** POST /api/search — run retrieval pipeline */
-async function handleSearch(req: Request, ctx: RouteContext): Promise<Response> {
+async function handleSearch(req: Request, ctx: RouteContext, log: Logger): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
@@ -113,7 +123,9 @@ async function handleSearch(req: Request, ctx: RouteContext): Promise<Response> 
   const mode = typeof body.mode === 'string' ? body.mode : undefined;
 
   try {
+    log.info({ query, topK, mode }, 'Search request');
     const retrieval = await ctx.pipeline.retrieve(query, { topK, mode: mode as string });
+    log.info({ resultCount: retrieval.results.length }, 'Search complete');
     return Response.json({
       query,
       results: retrieval.results,
@@ -122,12 +134,13 @@ async function handleSearch(req: Request, ctx: RouteContext): Promise<Response> 
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Search failed';
+    log.error({ err: message }, 'Search failed');
     return Response.json({ error: message }, { status: 500 });
   }
 }
 
 /** POST /api/ask — streaming RAG answer via SSE */
-async function handleAsk(req: Request, ctx: RouteContext): Promise<Response> {
+async function handleAsk(req: Request, ctx: RouteContext, log: Logger): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
@@ -147,6 +160,8 @@ async function handleAsk(req: Request, ctx: RouteContext): Promise<Response> {
     );
   }
 
+  log.info({ query }, 'Ask request (streaming)');
+
   const sse = new SSEStream();
   const response = sse.createResponse();
 
@@ -154,6 +169,7 @@ async function handleAsk(req: Request, ctx: RouteContext): Promise<Response> {
   (async () => {
     try {
       const retrieval = await ctx.pipeline.retrieve(query);
+      log.info({ resultCount: retrieval.results.length }, 'Retrieval complete for ask');
       sse.send('status', { phase: 'retrieval_complete', count: retrieval.results.length });
 
       for await (const chunk of ctx.generator!.generateStream(query, retrieval.results)) {
@@ -165,15 +181,18 @@ async function handleAsk(req: Request, ctx: RouteContext): Promise<Response> {
             sse.send('source', JSON.parse(chunk.content));
             break;
           case 'done':
+            log.info('Generation stream complete');
             sse.send('done', { status: 'complete' });
             break;
           case 'error':
+            log.error({ err: chunk.content }, 'Generation stream error');
             sse.send('error', { message: chunk.content });
             break;
         }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Generation failed';
+      log.error({ err: message }, 'Ask failed');
       sse.send('error', { message });
     } finally {
       sse.close();
@@ -184,7 +203,7 @@ async function handleAsk(req: Request, ctx: RouteContext): Promise<Response> {
 }
 
 /** POST /api/ingest — trigger document ingestion */
-async function handleIngest(req: Request, ctx: RouteContext): Promise<Response> {
+async function handleIngest(req: Request, ctx: RouteContext, log: Logger): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
@@ -213,6 +232,7 @@ async function handleIngest(req: Request, ctx: RouteContext): Promise<Response> 
   }
 
   try {
+    log.info({ directory }, 'Ingest request');
     const { ingestDirectory } = await import('../ingestion/pipeline.ts');
     const result = await ingestDirectory(directory, ctx.embedder, ctx.store);
 
@@ -223,9 +243,11 @@ async function handleIngest(req: Request, ctx: RouteContext): Promise<Response> 
     );
     ctx.pipeline.invalidateCache();
 
+    log.info({ documentsLoaded: result.documentsLoaded, chunksStored: result.chunksStored }, 'Ingest complete');
     return Response.json({ status: 'ok', ...result });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Ingestion failed';
+    log.error({ err: message }, 'Ingest failed');
     return Response.json(
       { error: message, hint: 'Ensure the ingestion module is available' },
       { status: 500 },

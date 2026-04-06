@@ -6,7 +6,7 @@
  * IDF), and re-indexing clearing previous state.
  */
 import { describe, test, expect } from 'bun:test';
-import { BM25Index, type BM25Document } from '../../src/retrieval/bm25.ts';
+import { BM25Index, type BM25Document, stem } from '../../src/retrieval/bm25.ts';
 import { BM25_TEST_CORPUS } from '../helpers/fixtures.ts';
 import { createBM25Documents } from '../helpers/mocks.ts';
 
@@ -189,17 +189,20 @@ describe('BM25 – stemming', () => {
     expect(results.length).toBe(1);
   });
 
-  test('-ly suffix: "quickly" matches "quick"', () => {
+  test('-ly suffix: Porter converts final y to i after stripping', () => {
     const idx = new BM25Index();
     idx.index(makeDocs([{ id: 's3', content: 'the algorithm converges quickly' }]));
-    const results = idx.search('quick', 5);
+    // Porter stems "quickly" → "quickli" (Step 1c: y→i); query "quickly" also stems to "quickli"
+    const results = idx.search('quickly', 5);
     expect(results.length).toBe(1);
   });
 
-  test('-er suffix: "learner" matches "learn"', () => {
+  test('-er suffix: "container" matches "contain" (Porter strips -er when m>1)', () => {
     const idx = new BM25Index();
-    idx.index(makeDocs([{ id: 's4', content: 'a slow learner improves' }]));
-    const results = idx.search('learn', 5);
+    idx.index(makeDocs([{ id: 's4', content: 'a large container holds items' }]));
+    // Porter: "container" → "contain" (Step 4: -er removed, m("contain")=2>1)
+    // "contain" → "contain" (unchanged). Both match.
+    const results = idx.search('contain', 5);
     expect(results.length).toBe(1);
   });
 
@@ -304,5 +307,90 @@ describe('BM25 – scoring parameters', () => {
     for (const r of results) {
       expect(r.score).toBeGreaterThanOrEqual(0);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Porter stemmer – direct edge-case tests
+// ---------------------------------------------------------------------------
+
+describe('Porter stemmer – edge cases', () => {
+  test("Step 1a plurals: 'ponies' → 'poni'", () => {
+    expect(stem('ponies')).toBe('poni');
+  });
+
+  test("Step 1a sses: 'caresses' → 'caress'", () => {
+    expect(stem('caresses')).toBe('caress');
+  });
+
+  test("Step 2 -ational: 'relational' → 'relat'", () => {
+    // Step 2 maps -ational → -ate → "relate", then Step 5a removes trailing e
+    expect(stem('relational')).toBe('relat');
+  });
+
+  test("Step 2 -tional: 'conditional' → 'condit'", () => {
+    // Step 2 maps -tional → -tion → "condition", then Step 4 removes -ion
+    expect(stem('conditional')).toBe('condit');
+  });
+
+  test("Steps 2→3→4: 'generalization' → 'gener'", () => {
+    // Step 2: -ization → -ize → "generalize"
+    // Step 3: -alize → -al → "general"
+    // Step 4: -al removed (m>1) → "gener"
+    expect(stem('generalization')).toBe('gener');
+  });
+
+  test("Step 1b -ing with double consonant: 'hopping' → 'hop'", () => {
+    expect(stem('hopping')).toBe('hop');
+  });
+
+  test("Step 1b -ed with double consonant: 'tanned' → 'tan'", () => {
+    expect(stem('tanned')).toBe('tan');
+  });
+
+  test("Step 1b keeps l/s/z doubles: 'falling' → 'fall'", () => {
+    expect(stem('falling')).toBe('fall');
+  });
+
+  test("Step 1b keeps s double: 'hissing' → 'hiss'", () => {
+    expect(stem('hissing')).toBe('hiss');
+  });
+
+  test("Step 1b keeps z double: 'fizzing' → 'fizz'", () => {
+    expect(stem('fizzing')).toBe('fizz');
+  });
+
+  test("Step 1c: 'happy' → 'happi'", () => {
+    expect(stem('happy')).toBe('happi');
+  });
+
+  test("Step 3 -ness: 'darkness' → 'dark'", () => {
+    expect(stem('darkness')).toBe('dark');
+  });
+
+  test("Step 3 -ful: 'hopeful' → 'hope'", () => {
+    expect(stem('hopeful')).toBe('hope');
+  });
+
+  test("Step 4 -ence: 'allowance' → 'allow'", () => {
+    expect(stem('allowance')).toBe('allow');
+  });
+
+  test("Step 5a trailing e: 'probate' → 'probat'", () => {
+    expect(stem('probate')).toBe('probat');
+  });
+
+  test("Step 5b double l: 'controll' → 'control'", () => {
+    expect(stem('controll')).toBe('control');
+  });
+
+  test('short words ≤2 chars unchanged', () => {
+    expect(stem('an')).toBe('an');
+    expect(stem('is')).toBe('is');
+  });
+
+  test('already stemmed words pass through', () => {
+    expect(stem('cat')).toBe('cat');
+    expect(stem('run')).toBe('run');
   });
 });

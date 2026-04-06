@@ -9,6 +9,9 @@ export interface RagConfig {
     embeddingModel: string;
     generationModel: string;
   };
+  cohere: {
+    apiKey: string;
+  };
   server: {
     port: number;
     host: string;
@@ -36,6 +39,9 @@ export function loadConfig(): RagConfig {
       apiKey: process.env.OPENAI_API_KEY ?? '',
       embeddingModel: process.env.EMBEDDING_MODEL ?? 'text-embedding-3-small',
       generationModel: process.env.GENERATION_MODEL ?? 'gpt-4o-mini',
+    },
+    cohere: {
+      apiKey: process.env.COHERE_API_KEY ?? '',
     },
     server: {
       port: parseInt(process.env.PORT ?? '3737'),

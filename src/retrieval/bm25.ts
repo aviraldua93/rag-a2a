@@ -22,20 +22,216 @@ const STOPWORDS = new Set([
   'us', 'he', 'she', 'we', 'they', 'i', 'you',
 ]);
 
-/**
- * Simple suffix-stripping stemmer.
- * Removes common English suffixes to normalize terms.
- */
-function stem(word: string): string {
-  if (word.length <= 3) return word;
+// ---------------------------------------------------------------------------
+// Porter Stemmer Algorithm
+// Reference: M.F. Porter, 1980, "An algorithm for suffix stripping"
+// https://tartarus.org/martin/PorterStemmer/def.txt
+// ---------------------------------------------------------------------------
 
-  if (word.endsWith('tion') && word.length > 5) return word.slice(0, -4);
-  if (word.endsWith('ing') && word.length > 5) return word.slice(0, -3);
-  if (word.endsWith('ed') && word.length > 4) return word.slice(0, -2);
-  if (word.endsWith('ly') && word.length > 4) return word.slice(0, -2);
-  if (word.endsWith('er') && word.length > 4) return word.slice(0, -2);
-  if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3)
-    return word.slice(0, -1);
+/**
+ * Returns true if the character at position i in the word is a consonant.
+ * The letter 'y' is treated as a consonant only when it begins a word or
+ * follows another vowel.
+ */
+function isConsonant(word: string, i: number): boolean {
+  const c = word[i];
+  if (c === 'a' || c === 'e' || c === 'i' || c === 'o' || c === 'u')
+    return false;
+  if (c === 'y') return i === 0 || !isConsonant(word, i - 1);
+  return true;
+}
+
+/**
+ * Compute the "measure" m of a word — the number of VC (vowel-consonant)
+ * sequences in the form [C](VC){m}[V].
+ */
+function measure(word: string): number {
+  let m = 0;
+  let i = 0;
+  const n = word.length;
+  // Skip leading consonants
+  while (i < n && isConsonant(word, i)) i++;
+  while (i < n) {
+    // Skip vowels
+    while (i < n && !isConsonant(word, i)) i++;
+    if (i >= n) break;
+    m++;
+    // Skip consonants
+    while (i < n && isConsonant(word, i)) i++;
+  }
+  return m;
+}
+
+/** Returns true if the word contains at least one vowel. */
+function hasVowel(word: string): boolean {
+  for (let i = 0; i < word.length; i++) {
+    if (!isConsonant(word, i)) return true;
+  }
+  return false;
+}
+
+/** Returns true if the word ends with a double consonant (e.g. -tt, -ss). */
+function endsDoubleConsonant(word: string): boolean {
+  const n = word.length;
+  if (n < 2) return false;
+  return word[n - 1] === word[n - 2] && isConsonant(word, n - 1);
+}
+
+/**
+ * The *o condition: word ends with consonant-vowel-consonant, where
+ * the final consonant is not w, x, or y.
+ */
+function endsCVC(word: string): boolean {
+  const n = word.length;
+  if (n < 3) return false;
+  if (
+    !isConsonant(word, n - 1) ||
+    isConsonant(word, n - 2) ||
+    !isConsonant(word, n - 3)
+  )
+    return false;
+  const last = word[n - 1];
+  return last !== 'w' && last !== 'x' && last !== 'y';
+}
+
+/**
+ * Porter stemmer — reduces an English word to its stem using the classic
+ * five-step algorithm (plurals/past participles, derivational morphology,
+ * etc.).
+ */
+export function stem(word: string): string {
+  if (word.length <= 2) return word;
+
+  // ---- Step 1a: plurals ----
+  if (word.endsWith('sses')) {
+    word = word.slice(0, -2);
+  } else if (word.endsWith('ies')) {
+    word = word.slice(0, -2);
+  } else if (!word.endsWith('ss') && word.endsWith('s')) {
+    word = word.slice(0, -1);
+  }
+
+  // ---- Step 1b: -eed / -ed / -ing ----
+  let step1bExtra = false;
+  if (word.endsWith('eed')) {
+    if (measure(word.slice(0, -3)) > 0) word = word.slice(0, -1);
+  } else if (word.endsWith('ed')) {
+    const base = word.slice(0, -2);
+    if (hasVowel(base)) {
+      word = base;
+      step1bExtra = true;
+    }
+  } else if (word.endsWith('ing')) {
+    const base = word.slice(0, -3);
+    if (hasVowel(base)) {
+      word = base;
+      step1bExtra = true;
+    }
+  }
+  if (step1bExtra) {
+    if (word.endsWith('at') || word.endsWith('bl') || word.endsWith('iz')) {
+      word += 'e';
+    } else if (endsDoubleConsonant(word)) {
+      const last = word[word.length - 1];
+      if (last !== 'l' && last !== 's' && last !== 'z') {
+        word = word.slice(0, -1);
+      }
+    } else if (measure(word) === 1 && endsCVC(word)) {
+      word += 'e';
+    }
+  }
+
+  // ---- Step 1c: y → i ----
+  if (word.endsWith('y') && hasVowel(word.slice(0, -1))) {
+    word = word.slice(0, -1) + 'i';
+  }
+
+  // ---- Step 2: derivational morphology ----
+  const step2: [string, string][] = [
+    ['ational', 'ate'],
+    ['tional', 'tion'],
+    ['enci', 'ence'],
+    ['anci', 'ance'],
+    ['izer', 'ize'],
+    ['abli', 'able'],
+    ['alli', 'al'],
+    ['entli', 'ent'],
+    ['eli', 'e'],
+    ['ousli', 'ous'],
+    ['ization', 'ize'],
+    ['ation', 'ate'],
+    ['ator', 'ate'],
+    ['alism', 'al'],
+    ['iveness', 'ive'],
+    ['fulness', 'ful'],
+    ['ousness', 'ous'],
+    ['aliti', 'al'],
+    ['iviti', 'ive'],
+    ['biliti', 'ble'],
+    ['logi', 'log'],
+  ];
+  for (const [suffix, replacement] of step2) {
+    if (word.endsWith(suffix)) {
+      const base = word.slice(0, -suffix.length);
+      if (measure(base) > 0) word = base + replacement;
+      break;
+    }
+  }
+
+  // ---- Step 3: more derivational suffixes ----
+  const step3: [string, string][] = [
+    ['icate', 'ic'],
+    ['ative', ''],
+    ['alize', 'al'],
+    ['iciti', 'ic'],
+    ['ical', 'ic'],
+    ['ful', ''],
+    ['ness', ''],
+  ];
+  for (const [suffix, replacement] of step3) {
+    if (word.endsWith(suffix)) {
+      const base = word.slice(0, -suffix.length);
+      if (measure(base) > 0) word = base + replacement;
+      break;
+    }
+  }
+
+  // ---- Step 4: remove suffixes (requires m > 1) ----
+  const step4 = [
+    'al', 'ance', 'ence', 'er', 'ic', 'able', 'ible', 'ant',
+    'ement', 'ment', 'ent', 'ion', 'ou', 'ism', 'ate', 'iti',
+    'ous', 'ive', 'ize',
+  ];
+  for (const suffix of step4) {
+    if (word.endsWith(suffix)) {
+      const base = word.slice(0, -suffix.length);
+      if (suffix === 'ion') {
+        if (
+          measure(base) > 1 &&
+          (base.endsWith('s') || base.endsWith('t'))
+        ) {
+          word = base;
+        }
+      } else if (measure(base) > 1) {
+        word = base;
+      }
+      break;
+    }
+  }
+
+  // ---- Step 5a: remove trailing e ----
+  if (word.endsWith('e')) {
+    const base = word.slice(0, -1);
+    const m = measure(base);
+    if (m > 1 || (m === 1 && !endsCVC(base))) {
+      word = base;
+    }
+  }
+
+  // ---- Step 5b: ll → l when m > 1 ----
+  if (word.endsWith('ll') && measure(word) > 1) {
+    word = word.slice(0, -1);
+  }
 
   return word;
 }

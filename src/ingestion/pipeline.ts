@@ -4,6 +4,9 @@ import type { RawDocument } from './loader.ts';
 import type { TextChunk, ChunkStrategy } from './chunker.ts';
 import type { EmbeddingProvider } from '../embeddings/provider.ts';
 import type { VectorStore, VectorDocument } from '../store/types.ts';
+import { logger } from '../logger.ts';
+
+const log = logger.child({ component: 'ingest' });
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -84,7 +87,7 @@ export async function ingestDirectory(
     };
   }
 
-  console.log(`[ingest] Loaded ${docs.length} document(s) from ${dirPath}`);
+  log.info({ dirPath, documentsLoaded: docs.length }, `Loaded ${docs.length} document(s) from ${dirPath}`);
 
   // 2. Chunk documents ------------------------------------------------------
   const allChunks: TextChunk[] = [];
@@ -98,7 +101,7 @@ export async function ingestDirectory(
     }
   }
 
-  console.log(`[ingest] Created ${allChunks.length} chunk(s) (strategy=${strategy})`);
+  log.info({ chunksCreated: allChunks.length, strategy }, `Created ${allChunks.length} chunk(s)`);
 
   if (allChunks.length === 0) {
     return {
@@ -143,6 +146,7 @@ export async function ingestDirectory(
         startChar: chunk.metadata.startChar,
         endChar: chunk.metadata.endChar,
         strategy: chunk.metadata.strategy,
+        embeddingModel: embedder.modelName,
       },
     }));
 
@@ -150,7 +154,7 @@ export async function ingestDirectory(
     try {
       await store.upsert(vectorDocs);
       chunksStored += vectorDocs.length;
-      console.log(`[ingest] Batch ${batchIdx}/${totalBatches}: embedded & stored ${vectorDocs.length} chunk(s)`);
+      log.info({ batch: batchIdx, totalBatches, stored: vectorDocs.length }, `Batch ${batchIdx}/${totalBatches}: embedded & stored ${vectorDocs.length} chunk(s)`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`Store upsert batch ${batchIdx}/${totalBatches} failed: ${msg}`);
@@ -158,9 +162,14 @@ export async function ingestDirectory(
   }
 
   const durationMs = Date.now() - start;
-  console.log(
-    `[ingest] Done in ${durationMs}ms — ${docs.length} docs, ${allChunks.length} chunks, ${chunksEmbedded} embedded, ${chunksStored} stored, ${errors.length} error(s)`,
-  );
+  log.info({
+    durationMs,
+    documentsLoaded: docs.length,
+    chunksCreated: allChunks.length,
+    chunksEmbedded,
+    chunksStored,
+    errorCount: errors.length,
+  }, `Done in ${durationMs}ms`);
 
   return {
     documentsLoaded: docs.length,

@@ -42,6 +42,7 @@ describe('loadConfig', () => {
     expect(config.openai.apiKey).toBe('');
     expect(config.openai.embeddingModel).toBe('text-embedding-3-small');
     expect(config.openai.generationModel).toBe('gpt-4o-mini');
+    expect(config.cohere.apiKey).toBe('');
     expect(config.server.port).toBe(3737);
     expect(config.server.host).toBe('localhost');
     expect(config.retrieval.topK).toBe(10);
@@ -58,6 +59,7 @@ describe('loadConfig', () => {
     process.env.OPENAI_API_KEY = 'sk-test-key';
     process.env.EMBEDDING_MODEL = 'text-embedding-ada-002';
     process.env.GENERATION_MODEL = 'gpt-4';
+    process.env.COHERE_API_KEY = 'cohere-test-key';
     process.env.PORT = '9999';
     process.env.HOST = '0.0.0.0';
     process.env.TOP_K = '20';
@@ -74,6 +76,7 @@ describe('loadConfig', () => {
     expect(config.openai.apiKey).toBe('sk-test-key');
     expect(config.openai.embeddingModel).toBe('text-embedding-ada-002');
     expect(config.openai.generationModel).toBe('gpt-4');
+    expect(config.cohere.apiKey).toBe('cohere-test-key');
     expect(config.server.port).toBe(9999);
     expect(config.server.host).toBe('0.0.0.0');
     expect(config.retrieval.topK).toBe(20);
@@ -101,6 +104,7 @@ describe('loadConfig', () => {
     expect(typeof config.qdrant.collectionName).toBe('string');
     expect(typeof config.openai.apiKey).toBe('string');
     expect(typeof config.openai.embeddingModel).toBe('string');
+    expect(typeof config.cohere.apiKey).toBe('string');
     expect(typeof config.server.host).toBe('string');
     expect(typeof config.chunking.strategy).toBe('string');
   });

@@ -21,4 +21,11 @@ export class VectorSearcher {
     const vector = await this.embedder.embed(query);
     return this.store.search(vector, topK, filter);
   }
+
+  /**
+   * Search the vector store using a pre-computed vector (e.g. from HyDE).
+   */
+  async searchByVector(vector: number[], topK: number, filter?: SearchFilter): Promise<SearchResult[]> {
+    return this.store.search(vector, topK, filter);
+  }
 }
