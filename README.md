@@ -1,3 +1,5 @@
+<p align="center"><img src="hero.svg" alt="RAG-A2A Hero" width="800" /></p>
+
 # 🧠 RAG-A2A
 
 > Production-grade Retrieval-Augmented Generation pipeline exposed as an [A2A](https://google.github.io/A2A/) agent — hybrid search, reranking, streaming answers, zero required API keys.
