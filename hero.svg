@@ -1,0 +1,234 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="800" height="400">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0a1a"/>
+      <stop offset="100%" stop-color="#0d1033"/>
+    </linearGradient>
+    <linearGradient id="titleGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+    <linearGradient id="pipeGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5" opacity="0.4"/>
+    </pattern>
+    <filter id="glow-blue">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="glow-purple">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="glow-green">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <style>
+      @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+      @keyframes pulse-slow { 0%,100% { opacity: 0.2; } 50% { opacity: 0.6; } }
+      @keyframes dash-flow { 0% { stroke-dashoffset: 24; } 100% { stroke-dashoffset: 0; } }
+      @keyframes dash-flow-r { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 24; } }
+      @keyframes float-y { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
+      @keyframes float-y2 { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(6px); } }
+      @keyframes scale-pulse { 0%,100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.15); opacity: 1; } }
+      @keyframes ripple { 0% { r: 8; opacity: 0.6; } 100% { r: 28; opacity: 0; } }
+      @keyframes scan { 0% { transform: translateY(-200px); opacity: 0; } 10% { opacity: 0.15; } 90% { opacity: 0.15; } 100% { transform: translateY(200px); opacity: 0; } }
+      @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+      @keyframes particle-up { 0% { transform: translateY(0) scale(1); opacity: 0.8; } 100% { transform: translateY(-60px) scale(0); opacity: 0; } }
+      @keyframes glow-breathe { 0%,100% { filter: drop-shadow(0 0 4px #3b82f6); } 50% { filter: drop-shadow(0 0 12px #8b5cf6); } }
+      @keyframes orbit { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      .scan-line { animation: scan 4s ease-in-out infinite; }
+      .node-pulse { animation: pulse 2s ease-in-out infinite; }
+      .node-pulse-d1 { animation: pulse 2s ease-in-out 0.3s infinite; }
+      .node-pulse-d2 { animation: pulse 2s ease-in-out 0.6s infinite; }
+      .node-pulse-d3 { animation: pulse 2s ease-in-out 0.9s infinite; }
+      .node-pulse-d4 { animation: pulse 2s ease-in-out 1.2s infinite; }
+      .node-pulse-d5 { animation: pulse 2s ease-in-out 1.5s infinite; }
+      .flow-line { animation: dash-flow 1s linear infinite; }
+      .flow-line-d1 { animation: dash-flow 1s linear 0.2s infinite; }
+      .flow-line-d2 { animation: dash-flow 1s linear 0.4s infinite; }
+      .flow-line-d3 { animation: dash-flow 1s linear 0.6s infinite; }
+      .flow-line-d4 { animation: dash-flow 1s linear 0.8s infinite; }
+      .float { animation: float-y 3s ease-in-out infinite; }
+      .float-d1 { animation: float-y 3s ease-in-out 0.5s infinite; }
+      .float-d2 { animation: float-y2 3s ease-in-out 1s infinite; }
+      .scale-p { animation: scale-pulse 2.5s ease-in-out infinite; }
+      .ripple1 { animation: ripple 2s ease-out infinite; }
+      .ripple2 { animation: ripple 2s ease-out 0.7s infinite; }
+      .ripple3 { animation: ripple 2s ease-out 1.4s infinite; }
+      .particle { animation: particle-up 2s ease-out infinite; }
+      .particle-d1 { animation: particle-up 2s ease-out 0.4s infinite; }
+      .particle-d2 { animation: particle-up 2s ease-out 0.8s infinite; }
+      .particle-d3 { animation: particle-up 2s ease-out 1.2s infinite; }
+      .particle-d4 { animation: particle-up 2s ease-out 1.6s infinite; }
+      .glow-b { animation: glow-breathe 3s ease-in-out infinite; }
+      .blink-cursor { animation: blink 1s step-end infinite; }
+      .pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="400" fill="url(#bg)"/>
+  <rect width="800" height="400" fill="url(#grid)"/>
+
+  <!-- Scanning line -->
+  <rect class="scan-line" x="0" y="195" width="800" height="10" fill="url(#pipeGrad)" opacity="0.1" rx="2"/>
+
+  <!-- Corner decorations -->
+  <path d="M 20 50 L 20 20 L 50 20" fill="none" stroke="#3b82f6" stroke-width="1.5" opacity="0.5"/>
+  <path d="M 750 20 L 780 20 L 780 50" fill="none" stroke="#8b5cf6" stroke-width="1.5" opacity="0.5"/>
+  <path d="M 20 350 L 20 370 L 50 370" fill="none" stroke="#22c55e" stroke-width="1.5" opacity="0.5"/>
+  <path d="M 750 370 L 780 370 L 780 350" fill="none" stroke="#3b82f6" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- Title -->
+  <text x="400" y="52" text-anchor="middle" font-family="'Segoe UI',system-ui,sans-serif" font-size="32" font-weight="900" letter-spacing="4" fill="url(#titleGrad)">RAG-A2A</text>
+  <text x="400" y="74" text-anchor="middle" font-family="'Cascadia Code','Fira Code',monospace" font-size="11" fill="#94a3b8" letter-spacing="1">Production RAG Pipeline as an A2A Agent</text>
+
+  <!-- Pipeline main connector line -->
+  <line x1="115" y1="210" x2="685" y2="210" stroke="url(#pipeGrad)" stroke-width="2" stroke-dasharray="6,6" class="flow-line" opacity="0.6"/>
+  <line x1="115" y1="210" x2="685" y2="210" stroke="url(#pipeGrad)" stroke-width="1" opacity="0.15"/>
+
+  <!-- Stage 1: Documents -->
+  <g class="float">
+    <circle cx="130" cy="210" r="22" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5" class="node-pulse"/>
+    <circle cx="130" cy="210" class="ripple1" fill="none" stroke="#3b82f6" stroke-width="0.8"/>
+    <rect x="120" y="200" width="12" height="15" rx="1" fill="none" stroke="#3b82f6" stroke-width="1" opacity="0.9"/>
+    <line x1="123" y1="205" x2="129" y2="205" stroke="#3b82f6" stroke-width="0.6" opacity="0.6"/>
+    <line x1="123" y1="208" x2="129" y2="208" stroke="#3b82f6" stroke-width="0.6" opacity="0.6"/>
+    <line x1="123" y1="211" x2="128" y2="211" stroke="#3b82f6" stroke-width="0.6" opacity="0.6"/>
+    <rect x="126" y="203" width="12" height="15" rx="1" fill="#0f172a" stroke="#3b82f6" stroke-width="1" opacity="0.7"/>
+    <line x1="129" y1="208" x2="135" y2="208" stroke="#3b82f6" stroke-width="0.6" opacity="0.5"/>
+    <line x1="129" y1="211" x2="135" y2="211" stroke="#3b82f6" stroke-width="0.6" opacity="0.5"/>
+    <text x="130" y="245" text-anchor="middle" font-family="monospace" font-size="7" fill="#64748b">DOCS</text>
+  </g>
+
+  <!-- Stage 2: Chunking -->
+  <g class="float-d1">
+    <circle cx="245" cy="210" r="22" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5" class="node-pulse-d1"/>
+    <circle cx="245" cy="210" class="ripple2" fill="none" stroke="#3b82f6" stroke-width="0.8"/>
+    <line x1="237" y1="203" x2="237" y2="217" stroke="#3b82f6" stroke-width="1.2"/>
+    <line x1="245" y1="200" x2="245" y2="220" stroke="#3b82f6" stroke-width="1.2"/>
+    <line x1="253" y1="203" x2="253" y2="217" stroke="#3b82f6" stroke-width="1.2"/>
+    <line x1="233" y1="210" x2="257" y2="210" stroke="#3b82f6" stroke-width="0.5" stroke-dasharray="2,2" opacity="0.5"/>
+    <text x="245" y="245" text-anchor="middle" font-family="monospace" font-size="7" fill="#64748b">CHUNK</text>
+  </g>
+
+  <!-- Stage 3: Embedding -->
+  <g class="float-d2">
+    <circle cx="360" cy="210" r="24" fill="#0f172a" stroke="#8b5cf6" stroke-width="1.5" class="node-pulse-d2"/>
+    <circle cx="352" cy="204" r="3" fill="#8b5cf6" opacity="0.8"/>
+    <circle cx="368" cy="204" r="3" fill="#8b5cf6" opacity="0.6"/>
+    <circle cx="355" cy="216" r="3" fill="#8b5cf6" opacity="0.7"/>
+    <circle cx="365" cy="214" r="3" fill="#8b5cf6" opacity="0.5"/>
+    <circle cx="360" cy="208" r="2" fill="#8b5cf6" opacity="0.9"/>
+    <line x1="352" y1="204" x2="360" y2="208" stroke="#8b5cf6" stroke-width="0.5" opacity="0.4"/>
+    <line x1="368" y1="204" x2="360" y2="208" stroke="#8b5cf6" stroke-width="0.5" opacity="0.4"/>
+    <line x1="355" y1="216" x2="360" y2="208" stroke="#8b5cf6" stroke-width="0.5" opacity="0.4"/>
+    <line x1="365" y1="214" x2="360" y2="208" stroke="#8b5cf6" stroke-width="0.5" opacity="0.4"/>
+    <text x="360" y="247" text-anchor="middle" font-family="monospace" font-size="7" fill="#64748b">EMBED</text>
+  </g>
+
+  <!-- Stage 4: Hybrid Search -->
+  <g class="float">
+    <circle cx="475" cy="210" r="24" fill="#0f172a" stroke="#8b5cf6" stroke-width="1.5" class="node-pulse-d3"/>
+    <circle cx="472" cy="207" r="8" fill="none" stroke="#8b5cf6" stroke-width="1.5"/>
+    <line x1="478" y1="213" x2="485" y2="220" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round"/>
+    <text x="475" y="247" text-anchor="middle" font-family="monospace" font-size="7" fill="#64748b">SEARCH</text>
+  </g>
+
+  <!-- Stage 5: Reranking -->
+  <g class="float-d1">
+    <circle cx="575" cy="210" r="22" fill="#0f172a" stroke="#8b5cf6" stroke-width="1.5" class="node-pulse-d4"/>
+    <path d="M567 205 L575 200 L583 205" fill="none" stroke="#22c55e" stroke-width="1.2"/>
+    <path d="M569 212 L575 207 L581 212" fill="none" stroke="#22c55e" stroke-width="1.2" opacity="0.7"/>
+    <path d="M571 219 L575 214 L579 219" fill="none" stroke="#22c55e" stroke-width="1.2" opacity="0.4"/>
+    <text x="575" y="245" text-anchor="middle" font-family="monospace" font-size="7" fill="#64748b">RERANK</text>
+  </g>
+
+  <!-- Stage 6: Answer -->
+  <g class="float-d2 glow-b">
+    <circle cx="675" cy="210" r="24" fill="#0f172a" stroke="#22c55e" stroke-width="2" class="node-pulse-d5"/>
+    <circle cx="675" cy="210" class="ripple1" fill="none" stroke="#22c55e" stroke-width="0.8"/>
+    <circle cx="675" cy="210" class="ripple3" fill="none" stroke="#22c55e" stroke-width="0.5"/>
+    <text x="675" y="214" text-anchor="middle" font-family="'Segoe UI',sans-serif" font-size="14" fill="#22c55e" font-weight="700">✦</text>
+    <text x="675" y="247" text-anchor="middle" font-family="monospace" font-size="7" fill="#64748b">ANSWER</text>
+  </g>
+
+  <!-- Flow arrows between stages -->
+  <line x1="155" y1="210" x2="220" y2="210" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,4" class="flow-line-d1" opacity="0.7"/>
+  <line x1="270" y1="210" x2="333" y2="210" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,4" class="flow-line-d2" opacity="0.7"/>
+  <line x1="387" y1="210" x2="448" y2="210" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="4,4" class="flow-line-d3" opacity="0.7"/>
+  <line x1="502" y1="210" x2="550" y2="210" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="4,4" class="flow-line-d4" opacity="0.7"/>
+  <line x1="600" y1="210" x2="648" y2="210" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,4" class="flow-line" opacity="0.7"/>
+
+  <!-- Mini Search Query Panel (left) -->
+  <g class="float-d2">
+    <rect x="50" y="275" width="140" height="70" rx="6" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+    <rect x="50" y="275" width="140" height="16" rx="6" fill="#141b2d"/>
+    <circle cx="62" cy="283" r="3" fill="#ef4444" opacity="0.8"/>
+    <circle cx="72" cy="283" r="3" fill="#f59e0b" opacity="0.8"/>
+    <circle cx="82" cy="283" r="3" fill="#22c55e" opacity="0.8"/>
+    <text x="110" y="286" text-anchor="middle" font-family="monospace" font-size="7" fill="#475569">search.py</text>
+    <text x="58" y="302" font-family="monospace" font-size="7" fill="#3b82f6">query</text>
+    <text x="86" y="302" font-family="monospace" font-size="7" fill="#94a3b8">= "how to deploy</text>
+    <text x="58" y="313" font-family="monospace" font-size="7" fill="#94a3b8"> agents in prod?"</text>
+    <text x="58" y="326" font-family="monospace" font-size="7" fill="#8b5cf6">mode</text>
+    <text x="82" y="326" font-family="monospace" font-size="7" fill="#f59e0b"> = "hybrid"</text>
+    <text x="58" y="337" font-family="monospace" font-size="7" fill="#22c55e">top_k</text>
+    <text x="82" y="337" font-family="monospace" font-size="7" fill="#f59e0b"> = 10</text>
+  </g>
+
+  <!-- Mini Results Panel (right) -->
+  <g class="float">
+    <rect x="610" y="275" width="140" height="70" rx="6" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+    <rect x="610" y="275" width="140" height="16" rx="6" fill="#141b2d"/>
+    <circle cx="622" cy="283" r="3" fill="#ef4444" opacity="0.8"/>
+    <circle cx="632" cy="283" r="3" fill="#f59e0b" opacity="0.8"/>
+    <circle cx="642" cy="283" r="3" fill="#22c55e" opacity="0.8"/>
+    <text x="680" y="286" text-anchor="middle" font-family="monospace" font-size="7" fill="#475569">results</text>
+    <text x="618" y="302" font-family="monospace" font-size="7" fill="#22c55e">1.</text>
+    <text x="628" y="302" font-family="monospace" font-size="7" fill="#94a3b8"> deploy-guide.md</text>
+    <text x="738" y="302" font-family="monospace" font-size="7" fill="#22c55e" text-anchor="end">0.94</text>
+    <text x="618" y="313" font-family="monospace" font-size="7" fill="#22c55e">2.</text>
+    <text x="628" y="313" font-family="monospace" font-size="7" fill="#94a3b8"> agent-config.md</text>
+    <text x="738" y="313" font-family="monospace" font-size="7" fill="#3b82f6" text-anchor="end">0.89</text>
+    <text x="618" y="324" font-family="monospace" font-size="7" fill="#22c55e">3.</text>
+    <text x="628" y="324" font-family="monospace" font-size="7" fill="#94a3b8"> scaling.md</text>
+    <text x="738" y="324" font-family="monospace" font-size="7" fill="#3b82f6" text-anchor="end">0.85</text>
+    <text x="618" y="335" font-family="monospace" font-size="7" fill="#64748b">4.</text>
+    <text x="628" y="335" font-family="monospace" font-size="7" fill="#64748b"> monitoring.md</text>
+    <text x="738" y="335" font-family="monospace" font-size="7" fill="#64748b" text-anchor="end">0.72</text>
+  </g>
+
+  <!-- Ambient connection lines -->
+  <line x1="130" y1="188" x2="100" y2="275" stroke="#3b82f6" stroke-width="0.5" stroke-dasharray="3,3" class="flow-line" opacity="0.3"/>
+  <line x1="675" y1="235" x2="660" y2="275" stroke="#22c55e" stroke-width="0.5" stroke-dasharray="3,3" class="flow-line-d2" opacity="0.3"/>
+
+  <!-- Particles -->
+  <circle cx="200" cy="180" r="1.5" fill="#3b82f6" class="particle"/>
+  <circle cx="320" cy="175" r="1" fill="#8b5cf6" class="particle-d1"/>
+  <circle cx="450" cy="185" r="1.5" fill="#8b5cf6" class="particle-d2"/>
+  <circle cx="550" cy="178" r="1" fill="#22c55e" class="particle-d3"/>
+  <circle cx="650" cy="182" r="1.5" fill="#22c55e" class="particle-d4"/>
+  <circle cx="100" cy="150" r="1" fill="#3b82f6" class="particle-d2"/>
+  <circle cx="700" cy="155" r="1" fill="#22c55e" class="particle-d1"/>
+
+  <!-- Ambient floating dots -->
+  <circle cx="60" cy="130" r="2" fill="#3b82f6" class="pulse-slow"/>
+  <circle cx="740" cy="120" r="2" fill="#8b5cf6" class="pulse-slow"/>
+  <circle cx="400" cy="100" r="1.5" fill="#22c55e" class="pulse-slow"/>
+  <circle cx="300" cy="140" r="1" fill="#3b82f6" opacity="0.3" class="node-pulse-d2"/>
+  <circle cx="500" cy="130" r="1" fill="#8b5cf6" opacity="0.3" class="node-pulse-d4"/>
+
+  <!-- Status bar -->
+  <rect x="0" y="376" width="800" height="24" fill="#080812" opacity="0.9"/>
+  <rect x="0" y="376" width="800" height="1" fill="#1e293b" opacity="0.5"/>
+  <circle cx="20" cy="388" r="3" fill="#22c55e" class="node-pulse"/>
+  <text x="30" y="391" font-family="monospace" font-size="9" fill="#475569">hybrid search · cohere reranker · 299 tests · streaming</text>
+  <text x="780" y="391" text-anchor="end" font-family="monospace" font-size="9" fill="#475569">v0.1.0</text>
+</svg>
